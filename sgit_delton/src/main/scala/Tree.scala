@@ -1,6 +1,7 @@
 import better.files.File
 
-final case class Tree(override val id : String, var entries : Map[String, Object]) extends Object
+//final case class Tree(override val id : String, var entries : Map[String, Object]) extends Object
+final case class Tree(override val id : String, var entries : Map[String, String]) extends Object
 {
 
   final override def objectType = ObjectType.Tree
@@ -9,33 +10,37 @@ final case class Tree(override val id : String, var entries : Map[String, Object
   def treeHeader:String = {
     var retVal = ""
     entries.foreach(obj => {
-      retVal += s"${obj._1} \t${obj._2}"
+      //(sha filename)
+      //retVal += obj
+      retVal = retVal + s"${obj._2} ${obj._1}\n" //id -> fileName
       //retVal += s"${obj.id} \t${obj.objectType}"
     })
     retVal
   }
 
-  def find(sha1 : String) : Option[Object] = {
-    if (entries.contains(sha1)) {
-      Some(entries(sha1))
-    }
-    None
-  }
+//  def find(sha1 : String) : Option[Object] = {
+//    if (entries.contains(sha1)) {
+//      Some(entries(sha1))
+//    }
+//    None
+//  }
 
+  //TODO verify
   def add(entry : Object) : Unit = {
     if(!entries.contains(entry.id)){
-      entries = entries + (entry.id -> entry)
+      //entries = entry.id :: entries
+      entries = entries + (entry.id -> entry.id)
     }
   }
 
-  def getListing: List[Object] = {
-    var ans:List[Object] = List[Object]()
-
-    entries.values.foreach(objName =>
-      ans = objName :: ans
-    )
-    ans
-  }
+//  def getListing: List[Object] = {
+//    var ans:List[Object] = List[Object]()
+//
+//    entries.values.foreach(objName =>
+//      ans = objName :: ans
+//    )
+//    ans
+//  }
 
   /*
     When a tree is saved it should return the SHA of the created tree

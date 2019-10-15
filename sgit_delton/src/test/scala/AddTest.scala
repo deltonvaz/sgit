@@ -16,7 +16,7 @@ class AddTest extends FunSuite {
   }
 
   test("Sgit should add") {
-    Sgit.add("example.txt")
+    Sgit.add("example - cópia.txt")
     //Sgit.add("teste/alface.txt")
     //assert(!FileHandler.fileExists("alface"))
   }

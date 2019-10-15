@@ -30,7 +30,8 @@ class TreeTest extends FunSuite {
 
     //var obj = List(blob)
 
-    val tree = new Tree("", Map("example.txt" -> blob))
+    val tree = new Tree("", Map("example.txt" -> "aaa"))
+    //val tree = new Tree("", List("AAAAA"))
 
     val afl = File.newTemporaryFile().appendLine(tree.treeHeader)
 
