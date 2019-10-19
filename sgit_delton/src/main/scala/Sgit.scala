@@ -1,425 +1,211 @@
-import java.io.FileNotFoundException
-import java.lang.Long.parseLong
-import java.security.AccessControlException
-
 import better.files.File
-import better.files.File.currentWorkingDirectory
+import misc.{BranchHandler, CommitHandler, Constants, FileHandler, StageHandler}
+import objects.{Blob, Commit, Tree}
 
-import scala.util.matching.Regex
+case class Sgit (var workingDirectory : String) {
 
+  val workingDir : File = File(workingDirectory)
+  var head : File = _
+  val stage : StageHandler = StageHandler(workingDirectory)
+  val branch : BranchHandler = BranchHandler(workingDirectory)
+  val currentCommit : CommitHandler = CommitHandler(workingDirectory)
+  val isFirstCommit : Boolean = CommitHandler(workingDirectory).isFirstCommit
 
-object Sgit {
-
-  var head : File = currentWorkingDirectory
-  var stage : File = currentWorkingDirectory
-  var currentCommit = Some()
-
-  var isFirstCommit : Boolean = false
-
+  /**
+    * function that initializes the sgit system
+    * */
   def init(): Unit = {
-    FileHandler.systemVerify()
-    FileHandler.createGitBaseFiles()
+    FileHandler(workingDir).systemVerify()
+    FileHandler(workingDir).createGitBaseFiles()
   }
 
-  /*
-    The method add consists in:
-      1- Generate blob file
-      2- Add blob file to INDEX (stage)
-   */
+  /**
+    *
+    * function responsible for adding files in the staging area
+    *
+    * @param param filename(s) / . / regex
+    */
   def add(param : String): Unit = {
-
-    //Create switch for param (!!!)
-
-    //Check if the file that is being added exists
-    if (!FileHandler.fileExists(param)){
-      throw new FileNotFoundException(s"$param not found")
-    }
-
-    val newFile = currentWorkingDirectory/param
-
-    /*
-      TODO Future to create tree with folders
-    */
-    val rx = """(?<!/)/(?!/)""".r.unanchored
-    val containsPath = param match {
-      case rx(_*) => true
-      case _ => false
-    }
-
-    /*
-      If the path contains folders git add must create tree files for each folder
-      return a list of trees
-     */
-    //TODO
-    //    if (containsPath) {
-    //      generateTree(newFile)
-    //    }
-
-    //Creating blob file
-    val length = newFile.size
-
-    val content = newFile.contentAsString
-
-    //Generate header for blob file
-    //val headerLine = Object.HeaderLine(ObjectType.Blob, length)
-
-    (currentWorkingDirectory/".sgit"/"objects"/newFile.sha1)
-      .createIfNotExists()
-      //.appendLine(headerLine)
-      .appendLine(content)
-
-
-    //Put file in the INDEX (stage) file
-    /*
-      First is needed a check to see if the file was modified or not
-     */
-    (currentWorkingDirectory/".sgit/INDEX").appendLine(newFile.sha1 + " " + param)
+  //Check if the file that is being added exists
+  if ((workingDir/param).notExists) {
+    println(Console.RED + s"$param not found")
+    return
+  }
+  //Create blobs for everything
+  if(param == "."){
+    workingDir.listRecursively
+      .filter(!_.isChildOf(workingDir/Constants.SGIT_ROOT))
+      .filterNot(_.name == Constants.SGIT_ROOT)
+      .filter(!_.name.contains("DS_Store"))//TODO remove
+      .filterNot(_.isDirectory)
+      .foreach(file => Blob(file, workingDirectory).save())
+  }else{
+    if((workingDir/param).isRegularFile) Blob(workingDir/param, workingDirectory).save()
+    else println(Console.RED + "invalid file name")
+  }
 
   }
 
-  /*
-    Commit should:
-    1- Create new tree file with blobs/tree that are/is being added
-    2- Create new commit file which points to the created tree
-  */
+  /**
+    * Create a new commit containing the current contents of the index
+    * and the given log message describing the changes.
+    * The new commit is a direct child of HEAD.
+    * @param message
+    */
   def commit(message : String) : Unit = {
-    this.initialize()
+    if (!loadSystem) return
 
-    //Creating tree file using INDEX SHAs[Only with blob - aka considering all files as blob]
+    var outMessage : String = ""
 
-    //Get stagged files
-    val oldStage = stage.lines
-
-    //Get Blobs SHA1 from Stage
-    var blobSHAs = Map[String, String]()
-    oldStage.foreach {
-      case Constants.STAGE_PATTERN(id, fileName) => {
-        blobSHAs = blobSHAs + (fileName -> id) //fileName unique
-      }
-      case _ => println("Error reading staged files") //TODO throwError
+    //Check if staged area is sync with last commit
+    if(!isFirstCommit && stage.isStageSync) {
+      outMessage = s"On branch ${branch.getCurrentBranch}\nnothing to commit, working tree clean"
+      println(outMessage)
+      return
     }
 
-    //As Im only considering blob files
-    val TempTree = Tree("", blobSHAs)
+    //Get Blobs from Stage
+    val stageBlob = stage.getStageBLOBS
 
-    //println(blobSHAs)
+    //Create ~tree to commit
+    val tree = Tree(head, workingDirectory, stageBlob)
 
-    //Create temporary tree
-    val afl = File.newTemporaryFile().appendLine(TempTree.treeHeader)
-
-    var realTree = Tree("", blobSHAs)
-
-    var treeObj:File = Constants.OBJECTS_FOLDER/afl.sha1
-
-
-
-    //Creating tree obj
-    println(treeObj.path + " " + afl.sha1)
-
-
-
-    //if(!treeObj.exists) {
-
-    treeObj = treeObj.createIfNotExists().append(realTree.treeHeader)
-    //}
-
-    println(realTree.treeHeader)
-    //TODO Read parent commit details
-
-    /*
-      Create commit file
-     */
-
-    /*
-      Creating new commit file
-    */
+    //Save the tree
+    val commitSHATree : File = tree.save()
 
     //Default if first commit
-    var headFile = "master"
     var parentCommitSHA = "NONE"
-
     if (!isFirstCommit) {
-      println("Not first commit anymore")
-      // get parent branch from refs
-      //Pega o commit q tem no head e coloca no novo commit
-      val headCommit = (currentWorkingDirectory/".sgit"/Constants.DEFAULT_HEAD_PATH).lines.head
-      //Pega o headCommit SHA
-      parentCommitSHA = headCommit
-
-//      var parentCommitInfo = (Constants.OBJECTS_FOLDER/headCommit).lines.head
-//      println(parentCommitInfo)
-//
-//
-//      parentCommitInfo match {
-//        case Constants.COMMIT_PATTERN(treeid, parentSha, b, c) => {
-//          println(parentSha)
-//
-//        }
-//        case _ => println("Error reading staged files") //TODO throwError
-//      }
-      //Check branch
+      parentCommitSHA = (File(workingDirectory)/Constants.DEFAULT_HEAD_PATH).lines.head
     }
 
+    val commit = Commit(commitSHATree, workingDirectory, parentCommitSHA, message)
 
-    println("Novo tree obj " + treeObj.sha1)
-    val commit = Commit(afl.sha1, parentCommitSHA, message)
+    //val tempCommit = File.newTemporaryFile().appendLine(commit.commitHeader)
 
-    val tempCommit = File.newTemporaryFile().appendLine(commit.commitHeader)
+    parentCommitSHA = commit.save
 
-    parentCommitSHA = tempCommit.sha1
-
-    (currentWorkingDirectory/".sgit"/"objects"/tempCommit.sha1)
-      .createIfNotExists()
-      .appendLine(commit.commitHeader)
-
-    //HEAD points to master branch
-    (currentWorkingDirectory/".sgit/HEAD")
+    //HEAD points to new commit
+    (workingDir/Constants.SGIT_ROOT/"HEAD")
       .clear
-      .appendLine("refs/heads/"+headFile)
-      //.appendLine("ref: refs/heads/"+headFile)
+      .appendLine("refs/heads/"+branch.getCurrentBranch)
 
     //Create commit file which head points to
-    (currentWorkingDirectory/".sgit"/"refs"/"heads"/headFile)
+    (workingDir/Constants.SGIT_ROOT/"refs"/"heads"/branch.getCurrentBranch)
       .createIfNotExists()
       .clear
       .appendLine(parentCommitSHA)
 
-
-
-    //val refCommit = (currentWorkingDirectory/".sgit"/"refs"/"heads"/message)
-    //        .createIfNotExists()
-    //        .appendLine(commit.commitHeader)
-
-    var outmessage : String = ""
-
-    outmessage = s"[master (root-commit) ${tempCommit.sha1}] $message\n"+
-      s" ${blobSHAs.size} files changed, ${blobSHAs.size} insertions(+)\n" //haaaaa
+    outMessage = s"[${branch.getCurrentBranch} (root-commit) ${parentCommitSHA}] $message\n"+
+      s" ${stageBlob.size} files changed, ${stageBlob.size} insertions(+)\n"
 
     var newFiles : String = ""
 
-    blobSHAs.foreach(f =>{
-      newFiles = " create "+f._2+"\n"+newFiles
+    stageBlob.foreach(f =>{
+      newFiles = " create "+f._1+"\n"+newFiles
     })
 
-    outmessage = outmessage+newFiles
+    outMessage = outMessage+newFiles
 
-    println(outmessage)
-
+    println(outMessage)
 
   }
 
+  /**
+    * Displays paths that have differences between the
+    * index file and the current HEAD commit, paths that
+    * have differences between the working tree and the
+    * index file, and paths in the working tree that
+    * are not tracked by Sgit
+    */
   def status() : Unit = {
-    initialize()
+    if (!loadSystem) return
     var message: String = ""
 
+    if(isFirstCommit){
+      message = s"On branch master\n\nNo commits yet\n\n"
+    }else{
+      message = s"On branch ${BranchHandler(workingDirectory).getCurrentBranch}\n\n"
+    }
+
     /*
-      Get current branch
-     */
-
-    val head = (currentWorkingDirectory/".sgit/HEAD").lines
-
-    if (head.head == Constants.DEFAULT_HEAD_PATH) message = s"On branch master\n\n"
-    else message = s"On branch $getCurrentBranch\n\n"
-
-
-    if(isFirstCommit) message = message + "No commits yet\n\n"
-
-   /*
       Check changes to be commited
      */
-    //TODO if firstCommit check only index(staged files
-
-    if(!(getStagedFiles() == getCurrentCommitFiles())){
-
+    if(!stage.isStageSync){
       message = message + "Changes to be commited:\n\n"
-      var stagedFileNames = getStagedFiles()
-      stagedFileNames = stagedFileNames.diff(getCurrentCommitFiles())
       var stagedFileNamesString:String = ""
-      stagedFileNames.foreach(file => {
-        stagedFileNamesString = s"\t\tnew file:\t$file\n"+stagedFileNamesString
+      stage.getModifiedFilesInStage
+        .toSeq.sortBy(_._2).foreach(f => {
+        f._2 match {
+          case Constants.NEW => stagedFileNamesString += Console.GREEN + "\t\tnew file: " + f._1 + "\n" + Console.RESET
+          case Constants.MODIFIED => stagedFileNamesString += Console.GREEN + "\t\tmodified: " + f._1 + "\n" + Console.RESET
+        }
       })
-      message = message + stagedFileNamesString + "\n"
-    }else{
-      message = message + "nothing to commit, working tree clean"
-    }
+
+      message = message + Console.GREEN + stagedFileNamesString + Console.RESET + "\n"
+    }//else{
+     // message = message + "nothing to commit, working tree clean"
+     // println(message)
+      //return
+    //}
 
     /*
-      Check untracked and changed files
+      Check untracked and modified files from workingDir files
      */
-
-    //Start getting files in root dir
-    var repFiles: Set[String] = Set()
-    currentWorkingDirectory.list.foreach(f => {
-      repFiles = repFiles.+(f.name)
-    })
-
-    repFiles = repFiles.diff(Constants.IGNORE_ROOT_FILES) //Arquivos do working directory
-
-    //End of getting files in root dir
-
-    //repFiles.foreach(f => println(f))
-
-
-    //Start getting files in stage area
-    val staged = (currentWorkingDirectory/".sgit/INDEX").lines
-
-    var stagedFiles: Set[String] = Set()
-    var stagedFilesWithSHA : Map[String, String] = Map()
-    staged.foreach(file => {
-      val StagePattern: Regex = """(\w+) +(\w+.+)""".r
-      file match {
-        case StagePattern(sha1, fileName) => {
-          if (repFiles.contains(fileName)) {
-            stagedFiles = stagedFiles.+(fileName)
+    if(!isFirstCommit) {
+      var modifiedStage = ""
+      if (FileHandler(workingDir).getModifiedFilesFromWorkingDirectory.nonEmpty) {
+        message += "Changes not staged for commit:\n\t(use \"sgit add <file>...\" to update what will be committed)\n\n"
+        FileHandler(workingDir).getModifiedFilesFromWorkingDirectory.toSeq.sortBy(_._2).reverse.foreach(f => {
+          f._2 match {
+            case Constants.DELETED => modifiedStage += "\t\tdeleted: " + f._1 + "\n"
+            case Constants.MODIFIED => modifiedStage += "\t\tmodified: " + f._1 + "\n"
           }
-          stagedFilesWithSHA = stagedFilesWithSHA + (fileName -> sha1)
-        }
+        })
+        message += Console.RED + modifiedStage + Console.RESET + "\n"
       }
-
-    })
-
-    val modifiedFiles = getModifiedFiles(getCurrentCommitFiles(), stagedFilesWithSHA)
-
-    if(modifiedFiles.nonEmpty)
-      message = message + "Changes not staged for commit:\n\n" + modifiedFiles.mkString("\t\t", "", "\n") + "\n"
-
-
-    val newFiles = repFiles.diff(stagedFiles) //Check new files
-
-
-
-//    println("New files")
-//    newFiles.foreach(f => println(f))
-
-
-    if(newFiles.nonEmpty){
-      message = message + "Untracked files:\n\n"
-      var untrackedFiles: String = ""
-      newFiles.foreach(fileName => untrackedFiles = "\t\t"+fileName+"\n"+untrackedFiles)
-      message = message + untrackedFiles
     }
 
+    val newFiles = FileHandler(workingDir).getWorkingDirFiles.diff(stage.getStagedFilesName)
+
+    if(newFiles.nonEmpty){
+      message += "Untracked files:\n\t(use \"sgit add <file>...\" to include in what will be committed)\n\n"
+      var untrackedFiles: String = ""
+      newFiles.foreach(fileName => untrackedFiles = "\t\t"+fileName+"\n"+untrackedFiles)
+      message = message + Console.RED + untrackedFiles + Console.RESET
+    }
 
     println(message)
 
-
   }
 
-  def tempSha(content : String) : String = {
-    ""
-  }
-
-  def getStagedFiles() : Set[String] = {
-    val staged = (currentWorkingDirectory/".sgit/INDEX").lines
-    var stagedFiles: Set[String] = Set()
-    staged.foreach(file => {
-      val StagePattern: Regex = """(\w+) +(\w+.+)""".r
-      file match {
-        case StagePattern(sha1, fileName) =>
-          stagedFiles = stagedFiles.+(fileName)
-      }
-    })
-    stagedFiles
-  }
-
-
-  def getModifiedFiles(commitedFiles : Set[String], stagedFiles : Map[String, String]) : Set[String] = {
-    var shaWorkingDir : String = ""
-    var modifiedFiles : Set[String] = Set()
-
-    commitedFiles.foreach(fileName => {
-      shaWorkingDir = (currentWorkingDirectory/fileName).sha1
-      if(!stagedFiles.exists(_ == (fileName -> shaWorkingDir))) {
-        modifiedFiles = modifiedFiles.+(fileName)
-      }
-    })
-
-    modifiedFiles
-
-  }
-
-
-  def getCurrentCommitFiles() : Set[String] = {
-    var tree = ""
-    var commitFiles: Set[String] = Set()
-
-    val headCommit = (currentWorkingDirectory/".sgit"/Constants.DEFAULT_HEAD_PATH).lines.head
-    //Pega o headCommit SHA
-
-    var parentCommitInfo = (Constants.OBJECTS_FOLDER/headCommit).lines.head
-
-
-    //Get tree
-    parentCommitInfo match {
-      case Constants.COMMIT_PATTERN(treeid, parentSha, b, c) => {
-        tree = treeid
-      }
-      case _ => println("Error reading staged files") //TODO throwError
+  /**
+    * Method to load the sgit basic system information
+    * @return
+    */
+  def loadSystem: Boolean = {
+    if(!FileHandler(workingDir).isGitBaseCreated) {
+      println(Console.RED + "fatal: not a sgit repository" + Console.RESET)
+      return false
     }
-
-    (Constants.OBJECTS_FOLDER/tree).lines.foreach(file => {
-      file match {
-        case Constants.STAGE_PATTERN(sha1, fileName) => {
-          commitFiles = commitFiles.+(fileName)
-        }
-      }
-      //commitFiles = commitFiles.+(file)
-    })
-
-    commitFiles
-  }
-
-
-
-  def getListOfSubDirectories(directoryName: String): Iterator[String] = {
-
-    File(directoryName).listRecursively.filter(_.isDirectory).map(_.name)
-//      .listFiles
-//      .filter(_.isDirectory)
-//      .map(_.getName)
-  }
-
-  def getCurrentBranch: String = {
-    initialize()
-    val headCommit = head.lines.head
-    var retVal = ""
-    headCommit match {
-      case Constants.BRANCH_PATTERN(a, b) => {
-        retVal = b
-      }
-      case _ => println("error ocurred while loading branch") //TODO throwException
+    if(!FileHandler(workingDir).hasPermission) {
+      println(Console.RED + "fatal: not allowed to initialize sgit" + Console.RESET)
+      return false
     }
-    retVal
+    head = workingDir/Constants.SGIT_ROOT/"HEAD"
+
+    true
   }
-
-  def generateTree(file : File) : Unit = {
-    //Cria as trees
-    var path = file.parent
-    while(path != currentWorkingDirectory) {
-      //println("Mostrando pai: "+path.toString())
-
-
-      path = path.parent
-    }
-
-    //println("parent " + path.parent.toString())
-  }
-
-
-  //Main -> initialize() -> load()
-  //initialize = verifica as condicoes basicas para a construcao do sistema
-  //load carrega em memoria a descricao do sistema na forma de tree-blobs
-  def initialize(): Unit = {
-    if(!FileHandler.hasPermission) throw new AccessControlException("Not allowed to initialize Sgit")
-    head = currentWorkingDirectory/".sgit/HEAD"
-    stage = currentWorkingDirectory/".sgit/INDEX"
-    isFirstCommit = head.isEmpty
-  }
-
-
 
 }
+
 
 object Main extends App {
-  println("Hello from main Sgit")
+  //  def parseArgument(arg: String) = arg match {
+  //    case "." | "--all" | "-A" => displayHelp
+  //    case "-v" | "--version" => displayVerion
+  //    case whatever => unknownArgument(whatever)
+  //  }
+  args.foreach(f => println(f))
 }
+

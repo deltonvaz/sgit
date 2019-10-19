@@ -1,3 +1,5 @@
+package objects
+
 abstract class ObjectType private(override val toString : String)
 
 object ObjectType {

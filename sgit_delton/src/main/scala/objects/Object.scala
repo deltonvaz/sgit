@@ -1,9 +1,14 @@
+package objects
+
+import better.files.File
+
 import scala.util.matching.Regex
 
 trait Object
 {
   def objectType : ObjectType
-  def id : String //SHA-1 ID
+  def id: File //SHA-1 ID
+  def workingDir : String
 }
 
 object Object
