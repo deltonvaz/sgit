@@ -195,19 +195,64 @@ case class Sgit (var workingDirectory : String) {
     true
   }
 
-  def diff : Unit {
+  def diff : Unit = {
+
 
   }
 
 }
 
+object Main{
+  val usage = """
+    Usage:
+      Create an empty Sgit repository
+        """+ Console.GREEN + "init" + Console.RESET +
+  """
 
-object Main extends App {
-  //  def parseArgument(arg: String) = arg match {
-  //    case "." | "--all" | "-A" => displayHelp
-  //    case "-v" | "--version" => displayVerion
-  //    case whatever => unknownArgument(whatever)
-  //  }
-  args.foreach(f => println(f))
+      Show the working tree status
+        """ + Console.GREEN + "status" + Console.RESET +
+  """
+
+      mmlaln [--min-size num] [--max-size num] filename
+  """
+  def main(args: Array[String]) {
+    if (args.length == 0) println(usage)
+    val arglist = args.toList
+    type OptionMap = Map[Symbol, Any]
+
+    def nextOption(map : OptionMap, list: List[String]) : OptionMap = {
+      def isSwitch(s : String) = (s(0) == '-')
+      list match {
+        case Nil => map
+        case "--max-size" :: value :: tail =>
+          nextOption(map ++ Map('maxsize -> value.toInt), tail)
+        case "--min-size" :: value :: tail =>
+          nextOption(map ++ Map('minsize -> value.toInt), tail)
+        case string :: opt2 :: tail if isSwitch(opt2) =>
+          nextOption(map ++ Map('infile -> string), list.tail)
+        case string :: Nil =>  nextOption(map ++ Map('infile -> string), list.tail)
+        //case option :: tail => println("Unknown option "+option)
+        //case _ => map
+        //case _ => None
+      }
+    }
+    val options = nextOption(Map(),arglist)
+    println(options)
+  }
 }
+
+
+//object Main extends App {
+//    args.foreach(f => println(f))
+//    val workingDir = Sgit(File("").path.toString)
+//
+//    parseArgument(args.head)
+//
+//    def parseArgument(arg: String) = arg match {
+//      case "." | "--all" | "-A" => workingDir.add(arg)
+//      case "-v" | "--version" => displayVerion
+//      case whatever => unknownArgument(whatever)
+//    }
+//
+//}
 
