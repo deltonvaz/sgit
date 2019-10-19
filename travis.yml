@@ -1,0 +1,11 @@
+language: scala
+
+jdk: openjdk8
+
+scala:
+   - 2.10.4
+   - 2.12.10
+
+script:
+   - cd sgit_delton 
+   - sbt test
