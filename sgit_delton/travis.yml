@@ -1,10 +1,10 @@
 language: scala
 
+scala: 2.12.10
+
 jdk: openjdk8
 
-scala:
-   - 2.10.4
-   - 2.12.10
-
-script:
-   - sbt ++$TRAVIS_SCALA_VERSION test
+jobs:
+  include:
+    - stage: test
+      script: sbt test
