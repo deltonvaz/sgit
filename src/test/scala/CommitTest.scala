@@ -1,14 +1,22 @@
+import better.files.Dsl.{cwd, mkdirs}
 import better.files.File
-import misc.{CommitHandler, Constants}
+import misc.{CommitHandler, Constants, FileHandler}
 import org.scalatest.{BeforeAndAfter, FlatSpec}
 
 class CommitTest extends FlatSpec with BeforeAndAfter {
-  val workingDirectory = "/Users/delton/sgit_tests"
+  val fileName1 = "file1.txt"
+  val fileName2 = "file2.txt"
+  val workingPath : File = mkdirs(cwd/"testFolder")
+  val workingDirectory : String = workingPath.path.toString
+  val sgit = Sgit(workingPath.path.toString)
+  val file1 : File  = (workingPath/fileName1).createIfNotExists()
+  val file2 : File = (workingPath/fileName2).createIfNotExists()
+  val index : File = workingPath/".sgit"/"INDEX"
+  val fileHandler : FileHandler = FileHandler(workingPath)
   var testCommit = CommitHandler(workingDirectory)
 
-
   before {
-    //Generate index file
+    sgit.init()
   }
 
   "A commit" should "verify if is the first commit" in {
@@ -22,13 +30,17 @@ class CommitTest extends FlatSpec with BeforeAndAfter {
   }
 
   it should "insert into head ref the last commit reference" in {
-    val sgit = Sgit(workingDirectory)
     sgit.commit("first commit")
   }
 
   "As a second commit without any new file" should "points to new commit file" in {
-    val sgit = Sgit(workingDirectory)
     sgit.commit("second commit")
+  }
+
+  "IN THEEE EEEEEEND" should "delete test folders" in {
+    workingPath.deleteOnExit()
+    workingPath.delete()
+    assert(!workingPath.isDirectory)
   }
 
 }

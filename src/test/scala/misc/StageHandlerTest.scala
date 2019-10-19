@@ -1,13 +1,15 @@
 package misc
 
+import better.files.Dsl.{cwd, mkdirs}
 import better.files.File
 import org.scalatest.{BeforeAndAfterEach, FunSuite}
 
 class StageHandlerTest extends FunSuite with BeforeAndAfterEach {
-
-  var workingPath : String = File("/Users/delton/sgit_tests").path.toString
+  val workingDir : File = mkdirs(cwd/"testFolder")
+  val workingPath : String = workingDir.path.toString
   val stage : StageHandler = StageHandler(workingPath)
   override def beforeEach() {
+
     //val stage : StageHandler = StageHandler(workingPath)
   }
 
@@ -45,7 +47,13 @@ class StageHandlerTest extends FunSuite with BeforeAndAfterEach {
   }
 
   test("testGetModifiedFilesInStage") {
-    stage.getModifiedFilesInStage
+    //stage.getModifiedFilesInStage
+  }
+
+  test("in the end delete all files") {
+    workingDir.deleteOnExit()
+    workingDir.delete()
+    assert(!workingDir.isDirectory)
   }
 
 

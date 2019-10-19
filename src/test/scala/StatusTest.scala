@@ -1,12 +1,26 @@
+import better.files.Dsl.{cwd, mkdirs}
 import better.files.File
-import org.scalatest.FunSuite
+import org.scalatest.{BeforeAndAfter, FlatSpec}
 
-class StatusTest extends FunSuite {
+class StatusTest extends FlatSpec with BeforeAndAfter {
 
-  var workingPath : String = File("/Users/delton/sgit_tests").path.toString
+  val workingPath : File = mkdirs(cwd/"testFolder")
+  val sgit = Sgit(workingPath.path.toString)
 
-  test("Sgit should status") {
-    Sgit(workingPath).status()
+  before {
+    sgit.init()
+  }
+
+  behavior of "sgit status"
+
+  it should "show status of the system" in {
+    sgit.status()
+  }
+
+  "IN THEEE EEEEEEND" should "delete test folders" in {
+    workingPath.deleteOnExit()
+    workingPath.delete()
+    assert(!workingPath.isDirectory)
   }
 
 }

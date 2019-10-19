@@ -1,11 +1,18 @@
+import better.files.Dsl.{cwd, mkdirs}
 import better.files.File
+import misc.FileHandler
 import org.scalatest.{BeforeAndAfter, FlatSpec}
 
 class AddTest extends FlatSpec with BeforeAndAfter {
 
-  var workingPath : File = File("/Users/delton/sgit_tests")
-  var file1 : File = _
-  var file2 : File = _
+  val fileName1 = "file1.txt"
+  val fileName2 = "file2.txt"
+  val workingPath : File = mkdirs(cwd/"testFolder")
+  val sgit = Sgit(workingPath.path.toString)
+  val file1 : File  = (workingPath/fileName1).createIfNotExists()
+  val file2 : File = (workingPath/fileName2).createIfNotExists()
+  val index : File = workingPath/".sgit"/"INDEX"
+  val fileHandler : FileHandler = FileHandler(workingPath)
 
   behavior of "add sgit method"
 
@@ -15,18 +22,20 @@ class AddTest extends FlatSpec with BeforeAndAfter {
     Sgit(workingPath.path.toString).add("dontExists")
   }
 
+  ignore
   it should "create a single blob when single document is added" in {
     Sgit(workingPath.path.toString).add("alface.txt")
   }
 
+  ignore
   it should "create a single blob when single document inside a folder is added" in {
     Sgit(workingPath.path.toString).add("example.txt")
   }
 
   it should "create multiple blobs when . is used as parameter to add" in {
 
-    file1 = (workingPath/"file1.txt").appendLine("tst1")
-    file2 = (workingPath/"file2.txt").appendLine("tst2")
+    file1.appendLine("tst1")
+    file2.appendLine("tst2")
 
     Sgit(workingPath.path.toString).add(".")
 
@@ -36,6 +45,12 @@ class AddTest extends FlatSpec with BeforeAndAfter {
     file1.deleteOnExit()
     file2.deleteOnExit()
 
+  }
+
+  "IN THEEE EEEEEEND" should "delete test folders" in {
+    workingPath.deleteOnExit()
+    workingPath.delete()
+    assert(!workingPath.isDirectory)
   }
 
 }

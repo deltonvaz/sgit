@@ -1,4 +1,5 @@
 import better.files.File
+import better.files.Dsl.{cwd, mkdirs}
 import misc.{BranchHandler, CommitHandler, Constants, FileHandler, Functions, StageHandler}
 import objects.{Blob, Commit, Tree}
 
@@ -17,6 +18,7 @@ case class Sgit (var workingDirectory : String) {
   def init(): Unit = {
     FileHandler(workingDir).systemVerify()
     FileHandler(workingDir).createGitBaseFiles()
+    println(s"Initialized empty Sgit repository in $workingDirectory")
   }
 
   /**
@@ -50,7 +52,7 @@ case class Sgit (var workingDirectory : String) {
     * Create a new commit containing the current contents of the index
     * and the given log message describing the changes.
     * The new commit is a direct child of HEAD.
-    * @param message
+    * @param message message that will be signed to commit
     */
   def commit(message : String) : Unit = {
     if (!loadSystem) return
@@ -94,7 +96,7 @@ case class Sgit (var workingDirectory : String) {
       .clear
       .appendLine(parentCommitSHA)
 
-    outMessage = s"[${branch.getCurrentBranch} (root-commit) ${parentCommitSHA}] $message\n"+
+    outMessage = s"[${branch.getCurrentBranch} (root-commit) $parentCommitSHA] $message\n"+
       s" ${stageBlob.size} files changed, ${stageBlob.size} insertions(+)\n"
 
     var newFiles : String = ""
@@ -196,6 +198,7 @@ case class Sgit (var workingDirectory : String) {
   }
 
   def diff() : Unit = {
+    if(!loadSystem) return
     val lines = FileHandler(workingDir).getDiffLinesWithStaged
     lines.foreach(f => {
       println("Modifications in " + f._1 + " file")
@@ -217,7 +220,7 @@ case class Sgit (var workingDirectory : String) {
 }
 
 object Main extends App{
-  val sgit : Sgit = Sgit("")
+  val sgit : Sgit = Sgit(cwd.path.toString)
   if(args.isEmpty) println(Functions.helpMessage)
   else
   args.head match {
@@ -225,7 +228,7 @@ object Main extends App{
       case "add" if args.tail.isEmpty => println("Nothing specified, nothing added.\nMaybe you wanted to say 'git add .'?")
       case "add" => args.tail.foreach(f => {sgit.add(f)})
       case "status" => sgit.status()
-      case "commit" => sgit.commit(args(2))
+      case "commit" => sgit.commit(args(1))
       case "diff" => sgit.diff()
       case _ => println(Functions.helpMessage)
   }

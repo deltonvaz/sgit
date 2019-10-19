@@ -44,7 +44,7 @@ case class FileHandler(var workingDirectory : File){
   /**
     * @deprecated
     * Function that was used to check if files exists or not
-    * @param fileName
+    * @param fileName file to check if exists
     * @return
     */
   def fileExists(fileName : String): Boolean = {
@@ -74,7 +74,8 @@ case class FileHandler(var workingDirectory : File){
     workingDirectory.listRecursively
       .filter(!_. isChildOf(workingDirectory/Constants.SGIT_ROOT))
       .filter(_.isRegularFile)
-      .filter(!_.name.contains("DS_Store"))//TODO remove
+      .filter(!_.name.contains("DS_Store"))//TODO remove macOs
+      .filter(!_.name.contains("sgit"))
       .foreach(f => {
       repFiles = repFiles.+(f.path.toString diff workingDirectory+"/")
     })
