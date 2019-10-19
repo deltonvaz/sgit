@@ -108,4 +108,22 @@ case class FileHandler(var workingDirectory : File){
     files
   }
 
+  def getDiffLinesWithStaged : Map[String, IndexedSeq[(String, String)]]  = { //old -> new
+    var stagedLines : IndexedSeq[String] = IndexedSeq()
+    var workingLines : IndexedSeq[String] = IndexedSeq()
+    var retVal : Map[String, IndexedSeq[(String, String)]] = Map()
+    getModifiedFilesFromWorkingDirectory
+      .filter(_._2 == Constants.MODIFIED)
+      .foreach(file => {
+        val fileSha = StageHandler(workingDirectory.path.toString).getContentFromName(file._1)
+        stagedLines = (workingDirectory/Constants.OBJECTS_FOLDER/fileSha.get).lines.toIndexedSeq
+        workingLines = (workingDirectory/file._1).lines.toIndexedSeq
+        val removed = (stagedLines diff workingLines).map(line => ("removed(-)", line))
+        val added = (workingLines diff stagedLines).map(line => ("added(+)", line))
+        var mappedLines : IndexedSeq[(String, String)] = removed++added.sortBy(_._2).toIndexedSeq
+        retVal = retVal.+(file._1 -> mappedLines)
+      })
+    retVal
+  }
+
 }

@@ -1,5 +1,5 @@
 import better.files.File
-import misc.{BranchHandler, CommitHandler, Constants, FileHandler, StageHandler}
+import misc.{BranchHandler, CommitHandler, Constants, FileHandler, Functions, StageHandler}
 import objects.{Blob, Commit, Tree}
 
 case class Sgit (var workingDirectory : String) {
@@ -150,7 +150,7 @@ case class Sgit (var workingDirectory : String) {
     /*
       Check untracked and modified files from workingDir files
      */
-    if(!isFirstCommit) {
+    //if(!isFirstCommit) {
       var modifiedStage = ""
       if (FileHandler(workingDir).getModifiedFilesFromWorkingDirectory.nonEmpty) {
         message += "Changes not staged for commit:\n\t(use \"sgit add <file>...\" to update what will be committed)\n\n"
@@ -162,7 +162,7 @@ case class Sgit (var workingDirectory : String) {
         })
         message += Console.RED + modifiedStage + Console.RESET + "\n"
       }
-    }
+    //}
 
     val newFiles = FileHandler(workingDir).getWorkingDirFiles.diff(stage.getStagedFilesName)
 
@@ -195,64 +195,41 @@ case class Sgit (var workingDirectory : String) {
     true
   }
 
-  def diff : Unit = {
+  def diff() : Unit = {
+    val lines = FileHandler(workingDir).getDiffLinesWithStaged
+    lines.foreach(f => {
+      println("Modifications in " + f._1 + " file")
+      f._2.foreach(lines => {
+        if(lines._2 != "")
+        lines._1 match {
+          case "added(+)" => printDiff(Console.GREEN, lines)
+          case "removed(-)" => printDiff(Console.RED, lines)
+        }
+      })
+      println()
+    })
+  }
 
-
+  def printDiff(color : String, lines: (String, String)) : Unit = {
+    println(color + "\t"+ lines._1 + "\t" + lines._2 + Console.RESET)
   }
 
 }
 
-object Main{
-  val usage = """
-    Usage:
-      Create an empty Sgit repository
-        """+ Console.GREEN + "init" + Console.RESET +
-  """
-
-      Show the working tree status
-        """ + Console.GREEN + "status" + Console.RESET +
-  """
-
-      mmlaln [--min-size num] [--max-size num] filename
-  """
-  def main(args: Array[String]) {
-    if (args.length == 0) println(usage)
-    val arglist = args.toList
-    type OptionMap = Map[Symbol, Any]
-
-    def nextOption(map : OptionMap, list: List[String]) : OptionMap = {
-      def isSwitch(s : String) = (s(0) == '-')
-      list match {
-        case Nil => map
-        case "--max-size" :: value :: tail =>
-          nextOption(map ++ Map('maxsize -> value.toInt), tail)
-        case "--min-size" :: value :: tail =>
-          nextOption(map ++ Map('minsize -> value.toInt), tail)
-        case string :: opt2 :: tail if isSwitch(opt2) =>
-          nextOption(map ++ Map('infile -> string), list.tail)
-        case string :: Nil =>  nextOption(map ++ Map('infile -> string), list.tail)
-        //case option :: tail => println("Unknown option "+option)
-        //case _ => map
-        //case _ => None
-      }
-    }
-    val options = nextOption(Map(),arglist)
-    println(options)
+object Main extends App{
+  val sgit : Sgit = Sgit("")
+  if(args.isEmpty) println(Functions.helpMessage)
+  else
+  args.head match {
+      case "init" => sgit.init()
+      case "add" if args.tail.isEmpty => println("Nothing specified, nothing added.\nMaybe you wanted to say 'git add .'?")
+      case "add" => args.tail.foreach(f => {sgit.add(f)})
+      case "status" => sgit.status()
+      case "commit" => sgit.commit(args(2))
+      case "diff" => sgit.diff()
+      case _ => println(Functions.helpMessage)
   }
+
+
 }
-
-
-//object Main extends App {
-//    args.foreach(f => println(f))
-//    val workingDir = Sgit(File("").path.toString)
-//
-//    parseArgument(args.head)
-//
-//    def parseArgument(arg: String) = arg match {
-//      case "." | "--all" | "-A" => workingDir.add(arg)
-//      case "-v" | "--version" => displayVerion
-//      case whatever => unknownArgument(whatever)
-//    }
-//
-//}
 

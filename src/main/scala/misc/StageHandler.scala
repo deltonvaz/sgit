@@ -27,13 +27,10 @@ case class StageHandler(workingDir : String) {
   def getStagedFiles : Set[File] = {
     val staged = (workDir/Constants.SGIT_ROOT/"INDEX").lines
     var stagedFiles: Set[File] = Set()
-    staged.foreach(file => {
-      val StagePattern: Regex = """(\w+) +(\w+.+)""".r
-      file match {
-        case StagePattern(sha1, fileName) =>
-          stagedFiles = stagedFiles.+(File(fileName))
-      }
-    })
+    staged.foreach {
+      case Constants.STAGE_PATTERN(sha1, fileName) =>
+        stagedFiles = stagedFiles.+(File(fileName))
+    }
     stagedFiles
   }
 
@@ -77,6 +74,10 @@ case class StageHandler(workingDir : String) {
     })
 
     modifiedFilesInStage
+  }
+
+  def getContentFromName(fileName : String) : Option[String] = {
+    getStageBLOBS.get(fileName)
   }
 
 }
