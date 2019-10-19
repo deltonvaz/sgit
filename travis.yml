@@ -1,7 +1,10 @@
 language: scala
 
-scala:
-   - 2.12.10
+scala: 2.12.10
 
-script:
-   - sbt test
+jdk: openjdk8
+
+jobs:
+  include:
+    - stage: test
+      script: sbt test
