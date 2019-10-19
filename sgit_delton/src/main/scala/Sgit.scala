@@ -81,8 +81,6 @@ case class Sgit (var workingDirectory : String) {
 
     val commit = Commit(commitSHATree, workingDirectory, parentCommitSHA, message)
 
-    //val tempCommit = File.newTemporaryFile().appendLine(commit.commitHeader)
-
     parentCommitSHA = commit.save
 
     //HEAD points to new commit
@@ -195,6 +193,10 @@ case class Sgit (var workingDirectory : String) {
     head = workingDir/Constants.SGIT_ROOT/"HEAD"
 
     true
+  }
+
+  def diff : Unit {
+
   }
 
 }
