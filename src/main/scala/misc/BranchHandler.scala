@@ -26,7 +26,7 @@ case class BranchHandler (workingDir : String) {
 
   /**
     * Create new file that represents the branch and insert lastCommit info
-    * @param branchName
+    * @param branchName name of new branch
     * @return a message to see if the branch has been correctly created
     */
   def newBranch(branchName : String) : String = {
@@ -35,8 +35,12 @@ case class BranchHandler (workingDir : String) {
     }else if(branchName.isEmpty){
       "invalid branch name"
     }else{
-      createBranchFile(branchName).appendLine(getCurrentBranchCommit)
-      s"branch $branchName has been created"
+      createBranchFile(branchName) match {
+        case None => s"branch named $branchName already exists"
+        case Some(s) =>
+          s.appendLine(getCurrentBranchCommit)
+          s"branch $branchName has been created"
+      }
     }
   }
 
@@ -49,27 +53,28 @@ case class BranchHandler (workingDir : String) {
     * @param branchName name of the file in refs/head
     * @return the file of the branch
     */
-  def createBranchFile(branchName : String) : File = {
-    (File(workingDir)/Constants.SGIT_HEADS/branchName).createFileIfNotExists()
+  def createBranchFile(branchName : String) : Option[File] = {
+    if ((File(workingDir)/Constants.SGIT_HEADS/branchName).exists)
+      None
+    else
+      Some((File(workingDir)/Constants.SGIT_HEADS/branchName).createFileIfNotExists())
   }
 
-  def getBranchesAndTags : String = {
-    /*
-    Show every fileName in refs and get the commit name that it points to
-     */
+  def getBranches : String = {
+    var retVal = ""
     (File(workingDir)/Constants.SGIT_HEADS)
       .list
-      //.filter(_.nonEmpty)
       .foreach(f => {
         if(f.name == getCurrentBranch){
-          println(Console.GREEN + "* " + f.name + Console.RESET + "\t" + f.lines.head + "\t"+ CommitHandler(workingDir).getCommitNameFromSHA(f.lines.head))
+          retVal+=Console.GREEN + "* " + f.name + Console.RESET + "\t" + f.lines.head + "\t"+ CommitHandler(workingDir).getCommitNameFromSHA(f.lines.head)
         } else{
-          println(f.name + "\t" + f.lines.head + "\t"+ CommitHandler(workingDir).getCommitNameFromSHA(f.lines.head))
+          retVal+=f.name + "\t" + f.lines.head + "\t"+ CommitHandler(workingDir).getCommitNameFromSHA(f.lines.head)
         }
-
       })
-    ""
+    retVal
   }
+
+
 
 
 }

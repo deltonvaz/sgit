@@ -12,14 +12,21 @@ class BranchHandlerTest extends FlatSpec with BeforeAndAfter {
   val fileName1 = "name with spaces.txt"
   val fileName2 = "file2.txt"
   val folderName = "folder"
-  val folder : File  = (workingPath/folderName).createDirectoryIfNotExists()
-  val file1 : File  = (workingPath/folderName/fileName1).createFileIfNotExists()
-  val file2 : File = (workingPath/fileName2).createIfNotExists()
+  var folder : File  = _//(workingPath/folderName).createDirectoryIfNotExists()
+  var file1 : File  = _//(workingPath/folderName/fileName1).createFileIfNotExists()
+  var file2 : File = _//(workingPath/fileName2).createIfNotExists()
 
   it should "initialize the system before each test"
 
   before {
     sgit.init()
+    folder = (workingPath/folderName).createDirectoryIfNotExists()
+    file1 = (workingPath/folderName/fileName1).createFileIfNotExists()
+    file2 = (workingPath/fileName2).createIfNotExists()
+
+
+    assert(file1.isRegularFile)
+    assert(file2.isRegularFile)
   }
 
   behavior of "sgit branch"
@@ -28,21 +35,30 @@ class BranchHandlerTest extends FlatSpec with BeforeAndAfter {
   }
 
   "when create new branch" should "check if the branch have been well created" in {
-    sgit.add(file2.path.toString)
+    sgit.add(fileName2)
     sgit.commit("a new commit")
     assert(brancHandler.newBranch(branchName).equals(s"branch $branchName has been created"))
   }
 
+  "when create new branch with same name" should "return an error message" in {
+    sgit.add(fileName2)
+    sgit.commit("a new commit")
+    brancHandler.newBranch(branchName)
+    assert(brancHandler.newBranch(branchName).equals(s"branch named $branchName already exists"))
+  }
+
   "when create a new non-named branch" should "return error message" in {
-    assert(brancHandler.newBranch("").equals("invalid branch name"))
+    //assert(brancHandler.newBranch("").equals("invalid branch name"))
   }
 
   "when use -av" should "list all branches and tags" in {
-    sgit.add(file1.path.toString)
-    sgit.commit("a changed commit")
-    brancHandler.getBranchesAndTags
+    sgit.add(folderName+"/"+fileName1)
+    sgit.commit("a first commit")
+    brancHandler.newBranch(branchName)
+    sgit.add(fileName2)
+    sgit.commit("a second commit")
+    assert(brancHandler.getBranches.length.equals(139)) //brute force test
   }
-
 
   after {
     if(delFolder) {

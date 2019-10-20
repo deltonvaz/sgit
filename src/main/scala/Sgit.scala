@@ -1,6 +1,6 @@
 import better.files.File
 import better.files.Dsl.{cwd, mkdirs}
-import misc.{BranchHandler, CommitHandler, Constants, FileHandler, Functions, StageHandler}
+import misc.{BranchHandler, CommitHandler, Constants, FileHandler, Functions, StageHandler, TagHandler}
 import objects.{Blob, Commit, Tree}
 
 case class Sgit (var workingDirectory : String) {
@@ -30,7 +30,7 @@ case class Sgit (var workingDirectory : String) {
   def add(param : String): Unit = {
   //Check if the file that is being added exists
   if ((workingDir/param).notExists) {
-    println(Console.RED + s"$param not found")
+    println(Console.RED + s"$param not found" + Console.RESET)
     return
   }
   //Create blobs for everything
@@ -230,7 +230,13 @@ case class Sgit (var workingDirectory : String) {
   def branch(branchCommand : String) : Unit = {
     if(!isFirstCommit) {
       branchCommand match {
-        case "-av" => println("list branches")
+        case "-av" => {
+          println("Branches\n")
+          println(branch.getBranches)
+          println("\nTags\n")
+          println(TagHandler(workingDirectory).getTags)
+        }
+        case _ if branchCommand.equals("") => println("invalid command")
         case _ => branch.newBranch(branchCommand)
       }
     }else{
@@ -252,7 +258,7 @@ object Main extends App{
       case "status" => sgit.status()
       case "commit" => sgit.commit(args(1))
       case "diff" => sgit.diff()
-      case "branch" if args.tail.isEmpty => println("not implemented yet")
+      case "branch" if args.tail.isEmpty => println("invalid command")
       case "branch" => sgit.branch(args(1))
       case _ => println(Functions.helpMessage)
   }
