@@ -26,7 +26,7 @@ case class CommitHandler (workingDir : String) {
 
       val lastCommit = (File(workingDir)/Constants.SGIT_ROOT/currentBranch).lines.head
 
-      (File(workingDir)/Constants.OBJECTS_FOLDER/getTreeFromCommit(lastCommit)).lines.foreach {
+      (File(workingDir)/Constants.OBJECTS_FOLDER/getTreeFromCommitSHA(lastCommit)).lines.foreach {
         case Constants.STAGE_PATTERN(id, fileName) => {
           retVal = retVal + (fileName -> id) //fileName unique
         }
@@ -39,11 +39,11 @@ case class CommitHandler (workingDir : String) {
 
   /**
     * Function to get the tree from given commit
-    * @param commitHeader header of commit in (tree parent date comment) pattern
+    * @param commitSHA header of commit in (tree parent date comment) pattern
     * @return SHA1 that commitHeader points to
     */
-  def getTreeFromCommit(commitHeader : String) : String = {
-    val lastCommitTree = (File(workingDir)/Constants.OBJECTS_FOLDER/commitHeader).lines.head
+  def getTreeFromCommitSHA(commitSHA : String) : String = {
+    val lastCommitTree = (File(workingDir)/Constants.OBJECTS_FOLDER/commitSHA).lines.head
     var commitTreeSHA = ""
     lastCommitTree match {
         case Constants.COMMIT_PATTERN(treeSHA, parentSha, date, comment) => {
@@ -52,6 +52,19 @@ case class CommitHandler (workingDir : String) {
         case _ => println(Console.RED + "Error reading commited files" + Console.RESET)
     }
     commitTreeSHA
+  }
+
+  def getCommitNameFromSHA(commitSHA : String) : String = {
+    val lastCommitTree = (File(workingDir)/Constants.OBJECTS_FOLDER/commitSHA).lines.head
+    lastCommitTree match {
+      case Constants.COMMIT_PATTERN(treeSHA, parentSha, date, comment) => {
+        comment
+      }
+      case _ =>
+        println(Console.RED + "Error reading commited files" + Console.RESET)
+        ""
+    }
+
   }
 
   /**
@@ -75,7 +88,7 @@ case class CommitHandler (workingDir : String) {
     val lastCommit = (File(workingDir)/Constants.SGIT_ROOT/currentBranch).lines.head
 
     var commitFiles: Set[String] = Set()
-    (File(workingDir) / Constants.OBJECTS_FOLDER / getTreeFromCommit(lastCommit)).lines.foreach {
+    (File(workingDir) / Constants.OBJECTS_FOLDER / getTreeFromCommitSHA(lastCommit)).lines.foreach {
       case Constants.STAGE_PATTERN(sha1, fileName) => {
         commitFiles = commitFiles.+(fileName)
       }

@@ -143,11 +143,7 @@ case class Sgit (var workingDirectory : String) {
       })
 
       message = message + Console.GREEN + stagedFileNamesString + Console.RESET + "\n"
-    }//else{
-     // message = message + "nothing to commit, working tree clean"
-     // println(message)
-      //return
-    //}
+    }
 
     /*
       Check untracked and modified files from workingDir files
@@ -166,7 +162,9 @@ case class Sgit (var workingDirectory : String) {
       }
     //}
 
-    val newFiles = FileHandler(workingDir).getWorkingDirFiles.diff(stage.getStagedFilesName)
+    val newFiles = FileHandler(workingDir).getWorkingDirFilesRec.diff(stage.getStagedFilesNameRec)
+
+    println(stage.getStagedFilesName)
 
     if(newFiles.nonEmpty){
       message += "Untracked files:\n\t(use \"sgit add <file>...\" to include in what will be committed)\n\n"
@@ -197,6 +195,9 @@ case class Sgit (var workingDirectory : String) {
     true
   }
 
+  /**
+    * Show changes between working directory and staged area
+    */
   def diff() : Unit = {
     if(!loadSystem) return
     val lines = FileHandler(workingDir).getDiffLinesWithStaged
@@ -213,8 +214,28 @@ case class Sgit (var workingDirectory : String) {
     })
   }
 
+  /**
+    * Diff printer beautify, should be a general beautify
+    * @param color color used for message
+    * @param lines lines that should be printed with colors
+    */
   def printDiff(color : String, lines: (String, String)) : Unit = {
     println(color + "\t"+ lines._1 + "\t" + lines._2 + Console.RESET)
+  }
+
+  /**
+    * Create a new branch with branchName
+    * @param branchCommand name of the new branch
+    */
+  def branch(branchCommand : String) : Unit = {
+    if(!isFirstCommit) {
+      branchCommand match {
+        case "-av" => println("list branches")
+        case _ => branch.newBranch(branchCommand)
+      }
+    }else{
+      println("fatal: Not a valid object name: 'master'.") //TODO remove
+    }
   }
 
 }
@@ -226,10 +247,13 @@ object Main extends App{
   args.head match {
       case "init" => sgit.init()
       case "add" if args.tail.isEmpty => println("Nothing specified, nothing added.\nMaybe you wanted to say 'git add .'?")
+      case "add" if args.last == "." => sgit.add(args.last)
       case "add" => args.tail.foreach(f => {sgit.add(f)})
       case "status" => sgit.status()
       case "commit" => sgit.commit(args(1))
       case "diff" => sgit.diff()
+      case "branch" if args.tail.isEmpty => println("not implemented yet")
+      case "branch" => sgit.branch(args(1))
       case _ => println(Functions.helpMessage)
   }
 

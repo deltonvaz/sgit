@@ -5,7 +5,7 @@ import org.scalatest.{BeforeAndAfter, FlatSpec}
 
 class AddTest extends FlatSpec with BeforeAndAfter {
 
-  val fileName1 = "file1.txt"
+  val fileName1 = "nome com espaco.txt"
   val fileName2 = "file2.txt"
   val workingPath : File = mkdirs(cwd/"testFolder")
   val sgit = Sgit(workingPath.path.toString)
@@ -41,9 +41,6 @@ class AddTest extends FlatSpec with BeforeAndAfter {
 
     assert((workingPath/".sgit"/"objects"/file1.sha1).exists)
     assert((workingPath/".sgit"/"objects"/file2.sha1).exists)
-
-    file1.deleteOnExit()
-    file2.deleteOnExit()
 
   }
 

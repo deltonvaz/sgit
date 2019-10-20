@@ -11,19 +11,45 @@ case class StageHandler(workingDir : String) {
 
   def getStagedFileLines : Traversable[String] = stageArea.lines
 
+  /**
+    *
+    * @return a recursively set[fileNames] of the working dir
+    */
+  def getStagedFilesNameRec : Set[String] = {
+    val staged = (workDir/Constants.SGIT_ROOT/"INDEX").lines
+    var stagedFiles: Set[String] = Set()
+    staged.foreach {
+      case Constants.STAGE_PATTERN(sha1, fileName) =>
+        stagedFiles = stagedFiles.+(fileName)
+    }
+    stagedFiles
+  }
+
+  /**
+    *
+    * @return a set[fileNames] of the working dir
+    */
   def getStagedFilesName : Set[String] = {
     val staged = (workDir/Constants.SGIT_ROOT/"INDEX").lines
     var stagedFiles: Set[String] = Set()
     staged.foreach(file => {
       val StagePattern: Regex = """(\w+) +(\w+.+)""".r
+      val StagePatternFile: Regex = """(\w+) +(\w+\/)""".r
+      val StagePatternFolder: Regex = """(\w+)\s(.*?\/)""".r
       file match {
-        case StagePattern(sha1, fileName) =>
+        case StagePatternFolder(sha1, folder) =>
+          stagedFiles = stagedFiles.+(folder)
+        case StagePattern(sha, fileName) =>
           stagedFiles = stagedFiles.+(fileName)
       }
     })
     stagedFiles
   }
 
+  /**
+    *
+    * @return a Set[StagedFiles] with its content
+    */
   def getStagedFiles : Set[File] = {
     val staged = (workDir/Constants.SGIT_ROOT/"INDEX").lines
     var stagedFiles: Set[File] = Set()

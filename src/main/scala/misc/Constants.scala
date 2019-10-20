@@ -9,6 +9,7 @@ object Constants {
   val OBJECTS_FOLDER : String = ".sgit/objects"
   val DEFAULT_HEAD_PATH : String = ".sgit/refs/heads/master"
   val SGIT_HEADS : String = ".sgit/refs/heads"
+  val SGIT_TAGS : String = ".sgit/refs/tags"
   val NEW : Int = 0
   val MODIFIED : Int = 1
   val DELETED : Int = 2

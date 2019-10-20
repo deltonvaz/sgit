@@ -66,16 +66,21 @@ case class FileHandler(var workingDirectory : File){
     )
   }
 
+  //TODO fix: create a function to get only working dir files
+  //TODO make a copy in objects
   /**
     * @return a Set with the filename in the workingSet
     */
-  def getWorkingDirFiles : Set[String] = {
+  def getWorkingDirFilesRec : Set[String] = {
     var repFiles: Set[String] = Set()
     workingDirectory.listRecursively
       .filter(!_. isChildOf(workingDirectory/Constants.SGIT_ROOT))
       .filter(_.isRegularFile)
       .filter(!_.name.contains("DS_Store"))//TODO remove macOs
       .filter(!_.name.contains("sgit"))
+      .filter(!_. isChildOf(workingDirectory/"project")) //TODO remove
+      .filter(!_. isChildOf(workingDirectory/"target")) //TODO remove
+      .filter(!_. isChildOf(workingDirectory/".git")) //TODO remove
       .foreach(f => {
       repFiles = repFiles.+(f.path.toString diff workingDirectory+"/")
     })
@@ -92,23 +97,26 @@ case class FileHandler(var workingDirectory : File){
     val stage = StageHandler(workingDirectory.path.toString)
     //Get deleted
     stage
-      .getStagedFilesName.diff(getWorkingDirFiles)
+      .getStagedFilesNameRec.diff(getWorkingDirFilesRec)
       .foreach(f => {
         files += (f -> Constants.DELETED)
       })
     //get modified
     var shaWorkingDir : String = ""
-    getWorkingDirFiles
+    getWorkingDirFilesRec
       .foreach(fileName => {
       shaWorkingDir = (workingDirectory/fileName).sha1
       if(!stage.getStageBLOBS.exists(_ == (fileName -> shaWorkingDir)) && stage.getStageBLOBS.contains(fileName)) {
         files += (fileName -> Constants.MODIFIED)
       }
     })
-
     files
   }
 
+  /**
+    *
+    * @return A map[fileName, IndexedSeq[(removedOrAdded, lines)]
+    */
   def getDiffLinesWithStaged : Map[String, IndexedSeq[(String, String)]]  = { //old -> new
     var stagedLines : IndexedSeq[String] = IndexedSeq()
     var workingLines : IndexedSeq[String] = IndexedSeq()
@@ -121,7 +129,7 @@ case class FileHandler(var workingDirectory : File){
         workingLines = (workingDirectory/file._1).lines.toIndexedSeq
         val removed = (stagedLines diff workingLines).map(line => ("removed(-)", line))
         val added = (workingLines diff stagedLines).map(line => ("added(+)", line))
-        var mappedLines : IndexedSeq[(String, String)] = removed++added.sortBy(_._2).toIndexedSeq
+        val mappedLines : IndexedSeq[(String, String)] = removed++added.sortBy(_._2).toIndexedSeq
         retVal = retVal.+(file._1 -> mappedLines)
       })
     retVal

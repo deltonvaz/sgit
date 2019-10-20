@@ -3,6 +3,11 @@ package misc
 import better.files.File
 
 case class BranchHandler (workingDir : String) {
+
+  /**
+    *
+    * @return the name of the branch that HEAD points to
+    */
   def getCurrentBranch: String = {
     if((File(workingDir)/Constants.SGIT_ROOT/"HEAD").isEmpty){
       "master"
@@ -17,6 +22,54 @@ case class BranchHandler (workingDir : String) {
       }
       retVal
     }
-
   }
+
+  /**
+    * Create new file that represents the branch and insert lastCommit info
+    * @param branchName
+    * @return a message to see if the branch has been correctly created
+    */
+  def newBranch(branchName : String) : String = {
+    if((File(workingDir)/Constants.SGIT_ROOT/"HEAD").isEmpty) {
+      "fatal: Not a valid object name: 'master'."
+    }else if(branchName.isEmpty){
+      "invalid branch name"
+    }else{
+      createBranchFile(branchName).appendLine(getCurrentBranchCommit)
+      s"branch $branchName has been created"
+    }
+  }
+
+  def getCurrentBranchCommit : String = {
+    (File(workingDir)/Constants.SGIT_HEADS/getCurrentBranch).lines.head
+  }
+
+  /**
+    *
+    * @param branchName name of the file in refs/head
+    * @return the file of the branch
+    */
+  def createBranchFile(branchName : String) : File = {
+    (File(workingDir)/Constants.SGIT_HEADS/branchName).createFileIfNotExists()
+  }
+
+  def getBranchesAndTags : String = {
+    /*
+    Show every fileName in refs and get the commit name that it points to
+     */
+    (File(workingDir)/Constants.SGIT_HEADS)
+      .list
+      //.filter(_.nonEmpty)
+      .foreach(f => {
+        if(f.name == getCurrentBranch){
+          println(Console.GREEN + "* " + f.name + Console.RESET + "\t" + f.lines.head + "\t"+ CommitHandler(workingDir).getCommitNameFromSHA(f.lines.head))
+        } else{
+          println(f.name + "\t" + f.lines.head + "\t"+ CommitHandler(workingDir).getCommitNameFromSHA(f.lines.head))
+        }
+
+      })
+    ""
+  }
+
+
 }

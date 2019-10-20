@@ -3,6 +3,8 @@ package objects
 import better.files.File
 import misc.Constants
 
+import scala.util.matching.Regex
+
 final case class Blob(override val id : File, override val workingDir: String) extends Object {
 
   final override def objectType = ObjectType.Blob
@@ -26,11 +28,13 @@ final case class Blob(override val id : File, override val workingDir: String) e
     var stagedLines : Map[String, String] = Map()
     val pathFile : String = id.path.toString diff (workingDir+"/")
 
-    stagedLines = stageArea.lines
-      .map(_.split(" "))
-      .map {
-        case Array(k, v) => (v, k)//FilePath -> SHA
-      }.toMap
+    stageArea.lines.foreach(file => {
+      val StagePattern: Regex = """(\w+) +(\w+.+)""".r
+      file match {
+        case StagePattern(sha1, fileName) =>
+          stagedLines = stagedLines.+(fileName -> sha1)
+      }
+    })
 
     //Check if SHA is already registred into staged area
     stagedLines = stagedLines.+(pathFile -> id.sha1)
