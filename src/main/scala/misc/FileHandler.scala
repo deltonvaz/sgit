@@ -44,7 +44,7 @@ case class FileHandler(var workingDirectory : File){
   /**
     * @deprecated
     * Function that was used to check if files exists or not
-    * @param fileName file to check if exists
+    * @param fileName name of the file to check if exists
     * @return
     */
   def fileExists(fileName : String): Boolean = {

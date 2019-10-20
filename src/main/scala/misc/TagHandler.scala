@@ -44,11 +44,7 @@ case class TagHandler(workingDir : String) {
     (File(workingDir)/Constants.SGIT_TAGS)
       .list
       .foreach(f => {
-        if(f.name == BranchHandler(workingDir).getCurrentBranchCommit){
-          retVal+=Console.GREEN + "* " + f.name + Console.RESET + "\t" + f.lines.head + "\t"+ CommitHandler(workingDir).getCommitNameFromSHA(f.lines.head)
-        } else{
-          retVal+=f.name + "\t" + f.lines.head + "\t"+ CommitHandler(workingDir).getCommitNameFromSHA(f.lines.head)
-        }
+        retVal+=f.name+"\n"
       })
     retVal
   }

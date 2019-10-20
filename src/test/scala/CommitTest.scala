@@ -13,7 +13,7 @@ class CommitTest extends FlatSpec with BeforeAndAfter {
   val file2 : File = (workingPath/fileName2).createIfNotExists()
   val index : File = workingPath/".sgit"/"INDEX"
   val fileHandler : FileHandler = FileHandler(workingPath)
-  var testCommit = CommitHandler(workingDirectory)
+  val testCommit = CommitHandler(workingDirectory)
 
   before {
     sgit.init()

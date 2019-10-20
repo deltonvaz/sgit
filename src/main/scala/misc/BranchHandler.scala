@@ -66,10 +66,11 @@ case class BranchHandler (workingDir : String) {
       .list
       .foreach(f => {
         if(f.name == getCurrentBranch){
-          retVal+=Console.GREEN + "* " + f.name + Console.RESET + "\t" + f.lines.head + "\t"+ CommitHandler(workingDir).getCommitNameFromSHA(f.lines.head)
+          retVal+=Console.GREEN + "* " + f.name + Console.RESET + "\t\t" + f.lines.head + "\t"+ CommitHandler(workingDir).getCommitNameFromSHA(f.lines.head)
         } else{
-          retVal+=f.name + "\t" + f.lines.head + "\t"+ CommitHandler(workingDir).getCommitNameFromSHA(f.lines.head)
+          retVal+=f.name + "\t\t" + f.lines.head + "\t"+ CommitHandler(workingDir).getCommitNameFromSHA(f.lines.head)
         }
+        retVal+="\n"
       })
     retVal
   }

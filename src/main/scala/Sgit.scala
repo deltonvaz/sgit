@@ -39,6 +39,7 @@ case class Sgit (var workingDirectory : String) {
       .filter(!_.isChildOf(workingDir/Constants.SGIT_ROOT))
       .filterNot(_.name == Constants.SGIT_ROOT)
       .filter(!_.name.contains("DS_Store"))//TODO remove
+      .filter(!_.name.equals("sgit"))
       .filterNot(_.isDirectory)
       .foreach(file => Blob(file, workingDirectory).save())
   }else{
@@ -52,7 +53,7 @@ case class Sgit (var workingDirectory : String) {
     * Create a new commit containing the current contents of the index
     * and the given log message describing the changes.
     * The new commit is a direct child of HEAD.
-    * @param message message that will be signed to commit
+    * @param message commits name
     */
   def commit(message : String) : Unit = {
     if (!loadSystem) return
@@ -164,8 +165,6 @@ case class Sgit (var workingDirectory : String) {
 
     val newFiles = FileHandler(workingDir).getWorkingDirFilesRec.diff(stage.getStagedFilesNameRec)
 
-    println(stage.getStagedFilesName)
-
     if(newFiles.nonEmpty){
       message += "Untracked files:\n\t(use \"sgit add <file>...\" to include in what will be committed)\n\n"
       var untrackedFiles: String = ""
@@ -233,15 +232,32 @@ case class Sgit (var workingDirectory : String) {
         case "-av" => {
           println("Branches\n")
           println(branch.getBranches)
-          println("\nTags\n")
-          println(TagHandler(workingDirectory).getTags)
+          if(!(TagHandler(workingDirectory).getTags == "")){
+            println("\nTags\n")
+            println(TagHandler(workingDirectory).getTags)
+          }
         }
         case _ if branchCommand.equals("") => println("invalid command")
-        case _ => branch.newBranch(branchCommand)
+        case _ => println(branch.newBranch(branchCommand))
       }
     }else{
       println("fatal: Not a valid object name: 'master'.") //TODO remove
     }
+  }
+
+  def tag(tagName : String) : Unit = {
+    if(!isFirstCommit) {
+      tagName match {
+        case _ if tagName.equals("") => println("invalid command")
+        case _ => TagHandler(workingDirectory).newTag(tagName)
+      }
+    }else{
+      println("fatal: Not a valid object name: 'master'.") //TODO remove
+    }
+  }
+
+  def checkOut(in : String) : Unit = {
+
   }
 
 }
@@ -260,6 +276,11 @@ object Main extends App{
       case "diff" => sgit.diff()
       case "branch" if args.tail.isEmpty => println("invalid command")
       case "branch" => sgit.branch(args(1))
+      case "tag" if args.tail.isEmpty => println("invalid command")
+      case "tag" => sgit.tag(args(1))
+      case "checkout" => println("not implemented yet")
+      case "merge" => println("not implemented yet")
+      case "rebase" => println("not implemented yet")
       case _ => println(Functions.helpMessage)
   }
 
