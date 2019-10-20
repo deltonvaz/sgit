@@ -35,6 +35,10 @@ case class TagHandler(workingDir : String) {
       Some((File(workingDir)/Constants.SGIT_TAGS/tagName).createFileIfNotExists())
   }
 
+  /**
+    *
+    * @return tags that have been already added
+    */
   def getTags : String = {
     var retVal = ""
     (File(workingDir)/Constants.SGIT_TAGS)

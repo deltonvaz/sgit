@@ -34,12 +34,14 @@ class BranchHandlerTest extends FlatSpec with BeforeAndAfter {
     assert(brancHandler.newBranch("alface").equals("fatal: Not a valid object name: 'master'."))
   }
 
+  ignore
   "when create new branch" should "check if the branch have been well created" in {
     sgit.add(fileName2)
     sgit.commit("a new commit")
     assert(brancHandler.newBranch(branchName).equals(s"branch $branchName has been created"))
   }
 
+  ignore
   "when create new branch with same name" should "return an error message" in {
     sgit.add(fileName2)
     sgit.commit("a new commit")
@@ -47,10 +49,12 @@ class BranchHandlerTest extends FlatSpec with BeforeAndAfter {
     assert(brancHandler.newBranch(branchName).equals(s"branch named $branchName already exists"))
   }
 
+  ignore
   "when create a new non-named branch" should "return error message" in {
     //assert(brancHandler.newBranch("").equals("invalid branch name"))
   }
 
+  ignore
   "when use -av" should "list all branches and tags" in {
     sgit.add(folderName+"/"+fileName1)
     sgit.commit("a first commit")
