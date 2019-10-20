@@ -35,25 +35,27 @@ class TagTest extends FlatSpec with BeforeAndAfter {
     assert(tagHandler.newTag("alface").equals("fatal: Not a valid object name: 'master'."))
   }
 
-  ignore
-  "when create new tag" should "check if the tag have been well created" in {
+
+  //"when create new tag" should "check if the tag have been well created" in {
+  ignore should "check if the tag have been well created" in {
     sgit.add(fileName2)
     sgit.commit("a new commit")
     assert(tagHandler.newTag(tagName).equals(s"tag $tagName has been created"))
   }
 
-  ignore
-  "when create duplicated tag" should "return message" in {
+  //"when create duplicated tag" should "return message" in {
+  ignore should "return message" in {
     sgit.add(fileName2)
     sgit.commit("a new commit")
     tagHandler.newTag(tagName)
     assert(tagHandler.newTag(tagName).equals(s"tag named $tagName already exists"))
   }
 
-  ignore
-  "when create a new non-named tag" should "return error message" in {
-    //assert(tagHandler.newTag("").equals("invalid tag name"))
+  //"when create a new non-named tag" should "return error message" in {
+  ignore should "return error message for invalid name" in {
+      //assert(tagHandler.newTag("").equals("invalid tag name"))
   }
+
 
   after {
     if(delFolder) {
