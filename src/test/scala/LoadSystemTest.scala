@@ -1,13 +1,10 @@
+import better.files.Dsl.{cwd, mkdirs}
 import better.files.File
 import org.scalatest.{BeforeAndAfter, FlatSpec}
 
 class LoadSystemTest extends FlatSpec with BeforeAndAfter {
 
-  var workingPath : File = _
-
-  before {
-    workingPath = File.newTemporaryDirectory()
-  }
+  val workingPath : File = mkdirs(cwd/"testFolder")
 
   behavior of "load sgit system"
 
