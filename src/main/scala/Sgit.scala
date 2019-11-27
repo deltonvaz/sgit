@@ -185,10 +185,10 @@ case class Sgit (var workingDirectory : String) {
       println(Console.RED + "fatal: not a sgit repository" + Console.RESET)
       return false
     }
-    if(!FileHandler(workingDir).hasPermission) {
-      println(Console.RED + "fatal: not allowed to initialize sgit" + Console.RESET)
-      return false
-    }
+//    if(!FileHandler(workingDir).hasPermission) {
+//      println(Console.RED + "fatal: not allowed to initialize sgit" + Console.RESET)
+//      return false
+//    }
     head = workingDir/Constants.SGIT_ROOT/"HEAD"
 
     true
@@ -281,6 +281,7 @@ object Main extends App{
       case "checkout" => println("not implemented yet")
       case "merge" => println("not implemented yet")
       case "rebase" => println("not implemented yet")
+      case "log" => println("not implemented yet")
       case _ => println(Functions.helpMessage)
   }
 

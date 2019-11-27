@@ -17,10 +17,16 @@ final case class Blob(override val id : File, override val workingDir: String) e
 
 
   def save() : Unit = {
-    (workDir/Constants.SGIT_ROOT/"objects"/id.sha1)
-      .createIfNotExists()
-      .clear()
-      .appendLine(id.contentAsString)
+    if(!(workDir/Constants.SGIT_ROOT/"objects"/id.sha1).exists){
+      id.copyToDirectory(workDir/Constants.SGIT_ROOT/"objects")
+        .renameTo(id.sha1)
+    }
+//    id.copyToDirectory(workDir/Constants.SGIT_ROOT/"objects")
+//      .renameTo(id.sha1)
+//    (workDir/Constants.SGIT_ROOT/"objects"/id.sha1)
+//      .createIfNotExists()
+//      .clear()
+//      .appendLine(id.contentAsString)
     addToStageArea()
   }
 
@@ -36,7 +42,7 @@ final case class Blob(override val id : File, override val workingDir: String) e
       }
     })
 
-    //Check if SHA is already registred into staged area
+    //Check if SHA is already registered into staged area
     stagedLines = stagedLines.+(pathFile -> id.sha1)
 
     stageArea.clear()

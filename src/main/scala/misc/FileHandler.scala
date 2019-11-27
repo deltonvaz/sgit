@@ -30,9 +30,9 @@ case class FileHandler(var workingDirectory : File){
     * new files and folders
     * @return true if user has permission to read/write
     */
-  def hasPermission: Boolean = {
-    (workingDirectory/".sgit/").permissionsAsString == "rwxr-xr-x"
-  }
+//  def hasPermission: Boolean = {
+//    (workingDirectory/".sgit/").permissionsAsString == "rwxr-xr-x"
+//  }
 
   /**
     * Function to check if the base files of sgit are already created
