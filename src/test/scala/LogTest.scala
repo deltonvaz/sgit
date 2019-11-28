@@ -31,7 +31,7 @@ class LogTest extends FlatSpec with BeforeAndAfter {
   }
 
   "When it is first commit" should "return an empty string" in {
-    assert(commitHandler.getCommitsHistoric(false), false)
+    assertResult(commitHandler.getCommitsHistoric(true)) (false)
   }
 
   "when there is two commits" should "show it's details" in {
