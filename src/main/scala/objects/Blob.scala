@@ -3,30 +3,19 @@ package objects
 import better.files.File
 import misc.Constants
 
-import scala.util.matching.Regex
-
 final case class Blob(override val id : File, override val workingDir: String) extends Object {
 
   final override def objectType = ObjectType.Blob
-
-  def getTitle : String = id.name
 
   val workDir = File(workingDir)
 
   val stageArea: File = workDir/Constants.SGIT_ROOT/"INDEX"
 
-
   def save() : Unit = {
-    if(!(workDir/Constants.SGIT_ROOT/"objects"/id.sha1).exists){
-      id.copyToDirectory(workDir/Constants.SGIT_ROOT/"objects")
+    if(!(workDir/Constants.OBJECTS_FOLDER/id.sha1).exists){
+      id.copyToDirectory(workDir/Constants.OBJECTS_FOLDER)
         .renameTo(id.sha1)
     }
-//    id.copyToDirectory(workDir/Constants.SGIT_ROOT/"objects")
-//      .renameTo(id.sha1)
-//    (workDir/Constants.SGIT_ROOT/"objects"/id.sha1)
-//      .createIfNotExists()
-//      .clear()
-//      .appendLine(id.contentAsString)
     addToStageArea()
   }
 
@@ -35,11 +24,9 @@ final case class Blob(override val id : File, override val workingDir: String) e
     val pathFile : String = id.path.toString diff (workingDir+"/")
 
     stageArea.lines.foreach(file => {
-      val StagePattern: Regex = """(\w+) +(\w+.+)""".r
-      file match {
-        case StagePattern(sha1, fileName) =>
-          stagedLines = stagedLines.+(fileName -> sha1)
-      }
+      val sha1 = file.split(" ")(0)
+      val fileName = file.split(" ")(1)
+      stagedLines = stagedLines.+(fileName -> sha1)
     })
 
     //Check if SHA is already registered into staged area

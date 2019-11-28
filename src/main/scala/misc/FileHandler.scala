@@ -37,8 +37,8 @@ case class FileHandler(var workingDirectory : File){
   /**
     * Function to check if the base files of sgit are already created
     */
-  def systemVerify(): Unit = {
-    if(isGitBaseCreated) println(s"Reinitialized existing Sgit repository in $workingDirectory/.sgit")
+  def systemVerify(): Boolean = {
+    isGitBaseCreated
   }
 
   /**
@@ -118,6 +118,28 @@ case class FileHandler(var workingDirectory : File){
     * @return A map[fileName, IndexedSeq[(removedOrAdded, lines)]
     */
   def getDiffLinesWithStaged : Map[String, IndexedSeq[(String, String)]]  = { //old -> new
+    var stagedLines : IndexedSeq[String] = IndexedSeq()
+    var workingLines : IndexedSeq[String] = IndexedSeq()
+    var retVal : Map[String, IndexedSeq[(String, String)]] = Map()
+    getModifiedFilesFromWorkingDirectory
+      .filter(_._2 == Constants.MODIFIED)
+      .foreach(file => {
+        val fileSha = StageHandler(workingDirectory.path.toString).getContentFromName(file._1)
+        stagedLines = (workingDirectory/Constants.OBJECTS_FOLDER/fileSha.get).lines.toIndexedSeq
+        workingLines = (workingDirectory/file._1).lines.toIndexedSeq
+        val removed = (stagedLines diff workingLines).map(line => ("removed(-)", line))
+        val added = (workingLines diff stagedLines).map(line => ("added(+)", line))
+        val mappedLines : IndexedSeq[(String, String)] = removed++added.sortBy(_._2).toIndexedSeq
+        retVal = retVal.+(file._1 -> mappedLines)
+      })
+    retVal
+  }
+
+  /**
+    *
+    * @return A map[fileName, IndexedSeq[(removedOrAdded, lines)]
+    */
+  def getDiffLinesBetweenCommits(commit1Sha : String, commit2Sha : String) : Map[String, IndexedSeq[(String, String)]]  = { //old -> new
     var stagedLines : IndexedSeq[String] = IndexedSeq()
     var workingLines : IndexedSeq[String] = IndexedSeq()
     var retVal : Map[String, IndexedSeq[(String, String)]] = Map()

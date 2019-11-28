@@ -1,7 +1,8 @@
 import better.files.File
 import better.files.Dsl.{cwd, mkdirs}
-import misc.{BranchHandler, CommitHandler, Constants, FileHandler, Functions, StageHandler, TagHandler}
+import misc.{BranchHandler, CommitHandler, Config, Constants, FileHandler, Functions, StageHandler, TagHandler}
 import objects.{Blob, Commit, Tree}
+import scopt.OParser
 
 case class Sgit (var workingDirectory : String) {
 
@@ -16,9 +17,12 @@ case class Sgit (var workingDirectory : String) {
     * function that initializes the sgit system
     * */
   def init(): Unit = {
-    FileHandler(workingDir).systemVerify()
-    FileHandler(workingDir).createGitBaseFiles()
-    println(s"Initialized empty Sgit repository in $workingDirectory")
+    if(FileHandler(workingDir).systemVerify()){
+      println(s"Reinitialized existing Sgit repository in $workingDirectory/.sgit")
+    }else{
+      FileHandler(workingDir).createGitBaseFiles()
+      println(s"Initialized empty Sgit repository in $workingDirectory")
+    }
   }
 
   /**
@@ -27,26 +31,14 @@ case class Sgit (var workingDirectory : String) {
     *
     * @param param filename(s) / . / regex
     */
-  def add(param : String): Unit = {
-  //Check if the file that is being added exists
-  if ((workingDir/param).notExists) {
-    println(Console.RED + s"$param not found" + Console.RESET)
-    return
-  }
-  //Create blobs for everything
-  if(param == "."){
-    workingDir.listRecursively
-      .filter(!_.isChildOf(workingDir/Constants.SGIT_ROOT))
-      .filterNot(_.name == Constants.SGIT_ROOT)
-      .filter(!_.name.contains("DS_Store"))//TODO remove
-      .filter(!_.name.equals("sgit"))
-      .filterNot(_.isDirectory)
-      .foreach(file => Blob(file, workingDirectory).save())
-  }else{
-    if((workingDir/param).isRegularFile) Blob(workingDir/param, workingDirectory).save()
-    else println(Console.RED + "invalid file name")
-  }
-
+  def add(param : Seq[String]): Unit = {
+    val message = Functions.add(workingDir, param)._1
+    val msgType = Functions.add(workingDir, param)._2
+    if (msgType) {
+      Functions.stringFormatter(message, Console.GREEN)
+    } else {
+      Functions.stringFormatter(message, Console.RED)
+    }
   }
 
   /**
@@ -79,6 +71,7 @@ case class Sgit (var workingDirectory : String) {
     //Default if first commit
     var parentCommitSHA = "NONE"
     if (!isFirstCommit) {
+      println("is first commit???")
       parentCommitSHA = (File(workingDirectory)/Constants.DEFAULT_HEAD_PATH).lines.head
     }
 
@@ -205,8 +198,8 @@ case class Sgit (var workingDirectory : String) {
       f._2.foreach(lines => {
         if(lines._2 != "")
         lines._1 match {
-          case "added(+)" => printDiff(Console.GREEN, lines)
-          case "removed(-)" => printDiff(Console.RED, lines)
+          case "added(+)" => Functions.printDiff(Console.GREEN, lines)
+          case "removed(-)" => Functions.printDiff(Console.RED, lines)
         }
       })
       println()
@@ -214,32 +207,33 @@ case class Sgit (var workingDirectory : String) {
   }
 
   /**
-    * Diff printer beautify, should be a general beautify
-    * @param color color used for message
-    * @param lines lines that should be printed with colors
-    */
-  def printDiff(color : String, lines: (String, String)) : Unit = {
-    println(color + "\t"+ lines._1 + "\t" + lines._2 + Console.RESET)
-  }
-
-  /**
     * Create a new branch with branchName
     * @param branchCommand name of the new branch
     */
-  def branch(branchCommand : String) : Unit = {
+  def branch(branchCommand : String, all : Boolean, verbose : Boolean) : Unit = {
     if(!isFirstCommit) {
-      branchCommand match {
-        case "-av" => {
-          println("Branches\n")
-          println(branch.getBranches)
-          if(!(TagHandler(workingDirectory).getTags == "")){
-            println("\nTags\n")
-            println(TagHandler(workingDirectory).getTags)
-          }
+      if(all){
+        println("Branches\n")
+        println(branch.getBranches)
+        if(!(TagHandler(workingDirectory).getTags == "")){
+          println("\nTags\n")
+          println(TagHandler(workingDirectory).getTags)
         }
-        case _ if branchCommand.equals("") => println("invalid command")
-        case _ => println(branch.newBranch(branchCommand))
+      }else{
+        println(branch.newBranch(branchCommand))
       }
+//      branchCommand match {
+//        case "-av" => {
+//          println("Branches\n")
+//          println(branch.getBranches)
+//          if(!(TagHandler(workingDirectory).getTags == "")){
+//            println("\nTags\n")
+//            println(TagHandler(workingDirectory).getTags)
+//          }
+//        }
+//        case _ if branchCommand.equals("") => println("invalid command")
+//        case _ => println(branch.newBranch(branchCommand))
+//      }
     }else{
       println("fatal: Not a valid object name: 'master'.") //TODO remove
     }
@@ -256,35 +250,118 @@ case class Sgit (var workingDirectory : String) {
     }
   }
 
-  def checkOut(in : String) : Unit = {
+  /**
+    *
+    * @param changes
+    */
+  def log(changes : Boolean, stat : Boolean) : Unit = {
+    if(changes){
+      println("Show changes overtime")
+    }else if(stat){
+      println("Show stats about changes overtime")
+    }
+    CommitHandler(workingDirectory).getCommitsHistoric(true)
+
+    //mostra o commit
+
+    //se changes = true mostra o diff do commit em relacao ao head
 
   }
 
 }
 
 object Main extends App{
+  import scopt.OParser
+
   val sgit : Sgit = Sgit(cwd.path.toString)
-  if(args.isEmpty) println(Functions.helpMessage)
-  else
-  args.head match {
-      case "init" => sgit.init()
-      case "add" if args.tail.isEmpty => println("Nothing specified, nothing added.\nMaybe you wanted to say 'git add .'?")
-      case "add" if args.last == "." => sgit.add(args.last)
-      case "add" => args.tail.foreach(f => {sgit.add(f)})
-      case "status" => sgit.status()
-      case "commit" => sgit.commit(args(1))
-      case "diff" => sgit.diff()
-      case "branch" if args.tail.isEmpty => println("invalid command")
-      case "branch" => sgit.branch(args(1))
-      case "tag" if args.tail.isEmpty => println("invalid command")
-      case "tag" => sgit.tag(args(1))
-      case "checkout" => println("not implemented yet")
-      case "merge" => println("not implemented yet")
-      case "rebase" => println("not implemented yet")
-      case "log" => println("not implemented yet")
-      case _ => println(Functions.helpMessage)
+
+  val builder = OParser.builder[Config]
+  val parser1 = {
+    import builder._
+    OParser.sequence(
+      programName("delton sgit"),
+      head(Functions.randomStringFormatter("delton sgit"), Functions.randomStringFormatter("0.0.2")),
+      help("help").text("prints this usage text"),
+      cmd("init")
+        .action((_, c) => c.copy(mode = "init"))
+        .text(Functions.stringFormatter("\tCreate an empty Sgit repository", Console.GREEN)),
+      cmd("status")
+      .action((_, c) => c.copy(mode = "status"))
+        .text(Functions.stringFormatter("\tShow the working tree status", Console.GREEN)),
+      cmd("diff")
+        .action((_, c) => c.copy(mode = "diff"))
+        .text(Functions.stringFormatter("\tShow changes between staged area and working tree", Console.GREEN)),
+      cmd("add")
+        .action((_, c) => c.copy(mode = "add"))
+        .text(Functions.stringFormatter("\tAdd file contents to the index", Console.GREEN))
+        .children(
+          arg[String]("<filename/filenames or . >")
+            .unbounded()
+            .required()
+            .action((x, c) => c.copy(files = c.files :+ x))
+        ),
+      cmd("commit")
+        .action((_, c) => c.copy(mode = "commit"))
+        .text(Functions.stringFormatter("\tRecord changes to the repository", Console.GREEN))
+        .children(
+          opt[String]('m', "message")
+            .text("Commit's message")
+            .optional()
+            .action((message, c) => c.copy(cmessage = message))
+        ),
+      cmd("branch")
+        .action((_, c) => c.copy(mode = "branch"))
+        .text(Functions.stringFormatter("\tTo create new branch", Console.GREEN))
+        .children(
+          arg[String]("name")
+            .text("name of the branch")
+            .action((message, c) => c.copy(branchName = message)),
+          opt[Unit]('a', "all")
+            .action((_, c) => c.copy(showAll = true))
+            .text("display all branches created"),
+          opt[Unit]('v', "verbose")
+            .action((_, c) => c.copy(verbose = true))
+            .text("show details branch's commit"),
+        ),
+      cmd("tag")
+        .action((_, c) => c.copy(mode = "tag"))
+        .text(Functions.stringFormatter("\tCreate tag", Console.GREEN))
+        .children(
+          arg[String]("<tag name>")
+            .text("Create a new tag")
+            .action((message, c) => c.copy(tagName = message)),
+        ),
+      cmd("log")
+        .action((_, c) => c.copy(mode = "log"))
+        .text(Functions.stringFormatter("\tTo see historic differences", Console.GREEN))
+        .children(
+          opt[Unit]('p', "p")
+            .action((_, c) => c.copy(plog = true))
+            .optional()
+            .text("display all branches created"),
+          opt[Unit]('s', "status")
+            .action((_, c) => c.copy(statLog = true))
+            .optional()
+            .text("show details branch's commit"),
+        ),
+    )
   }
 
+  OParser.parse(parser1, args, Config()) match {
+    case Some(config) =>
+      config.mode match {
+        case "init" => sgit.init()
+        case "status" => sgit.status()
+        case "add" => sgit.add(config.files)
+        case "commit" => sgit.commit(config.cmessage)
+        case "diff" => sgit.diff()
+        case "branch" => sgit.branch(config.branchName, config.showAll, config.verbose)
+        case "tag" => sgit.tag(config.tagName)
+        case "log" => sgit.log(config.plog, config.statLog)
+      }
+    case _ =>
+    // arguments are bad, error message will have been displayed
+  }
 
 }
 

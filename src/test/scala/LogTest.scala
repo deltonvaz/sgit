@@ -3,7 +3,7 @@ import better.files.File
 import misc.{CommitHandler, Constants, FileHandler}
 import org.scalatest.{BeforeAndAfter, FlatSpec, Outcome}
 
-class CommitTest extends FlatSpec with BeforeAndAfter {
+class LogTest extends FlatSpec with BeforeAndAfter {
   val fileName1 = "file1.txt"
   val fileName2 = "file2.txt"
   val workingPath : File = mkdirs(cwd/"testFolder")
@@ -14,6 +14,7 @@ class CommitTest extends FlatSpec with BeforeAndAfter {
   val index : File = workingPath/".sgit"/"INDEX"
   val fileHandler : FileHandler = FileHandler(workingPath)
   val testCommit = CommitHandler(workingDirectory)
+  var commitHandler : CommitHandler = _
 
 
   override def withFixture(test: NoArgTest): Outcome = {
@@ -26,16 +27,19 @@ class CommitTest extends FlatSpec with BeforeAndAfter {
 
   before {
     sgit.init()
+    commitHandler = CommitHandler(workingDirectory)
   }
 
-  "A commit" should "verify if is the first commit" in {
-    (File(workingDirectory)/Constants.SGIT_ROOT/"HEAD").clear()
-    assert(testCommit.isFirstCommit, true)
+  "When it is first commit" should "return an empty string" in {
+    assert(commitHandler.getCommitsHistoric(false), false)
   }
 
-  "As a first commit the head file" should "be empty" in {
-    (File(workingDirectory)/Constants.DEFAULT_HEAD_PATH).clear()
-    assert((File(workingDirectory)/Constants.DEFAULT_HEAD_PATH).isEmpty, true)
+  "when there is two commits" should "show it's details" in {
+    sgit.add(Seq(fileName1))
+    sgit.commit("first commit")
+    sgit.add(Seq(fileName2))
+    sgit.commit("second commit")
+    assert(commitHandler.getCommitsHistoric(true), true)
   }
 
   it should "insert into head ref the last commit reference" in {

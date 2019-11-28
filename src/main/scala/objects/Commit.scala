@@ -13,8 +13,9 @@ final case class Commit(override val id : File, override val workingDir: String,
   def commitHeader:String = {
     val formatDate = new SimpleDateFormat("yyyy-MM-dd:hhmmss")
     val now  = Calendar.getInstance().getTime
+    val user = System.getProperty("user.name")
 
-    s"${id.sha1} $pointToCommit ${formatDate.format(now)} $message" //tree parentCommit
+    s"${id.sha1} $pointToCommit ${formatDate.format(now)} $message $user" //tree parentCommit
   }
 
   def setDateTime(dateTime : String) : Unit = {

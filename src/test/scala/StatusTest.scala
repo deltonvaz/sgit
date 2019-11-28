@@ -13,21 +13,21 @@ class StatusTest extends FlatSpec with BeforeAndAfter {
   val file1 : File  = (workingPath/folderName/fileName1).createFileIfNotExists()
   val file2 : File = (workingPath/fileName2).createIfNotExists()
 
-  before {
-  }
-
-  behavior of "sgit status"
-  it should "show status of the system" in {
-    sgit.init()
-    sgit.add(file1.path.toString)
-    sgit.add(fileName2)
-    sgit.status()
-  }
-
-  "IN THEEE EEEEEEND" should "delete test folders" in {
-    workingPath.deleteOnExit()
-    workingPath.delete()
-    assert(!workingPath.isDirectory)
-  }
+//  before {
+//  }
+//
+//  behavior of "sgit status"
+//  it should "show status of the system" in {
+//    sgit.init()
+//    sgit.add(file1.path.toString)
+//    sgit.add(fileName2)
+//    sgit.status()
+//  }
+//
+//  "IN THEEE EEEEEEND" should "delete test folders" in {
+//    workingPath.deleteOnExit()
+//    workingPath.delete()
+//    assert(!workingPath.isDirectory)
+//  }
 
 }

@@ -1,6 +1,79 @@
 package misc
 
+import better.files.File
+import objects.Blob
+
+import scala.io.AnsiColor
+import scala.util.Random
+
 object Functions {
+  /**
+    * Diff printer beautify, should be a general beautify
+    * @param color color used for message
+    * @param lines lines that should be printed with colors
+    */
+  def printDiff(color : String, lines: (String, String)) : Unit = {
+    println(color + "\t"+ lines._1 + "\t" + lines._2 + Console.RESET)
+  }
+
+
+  def stringFormatter(str: String, color: String): String = {
+    color + str + Console.RESET
+  }
+
+  def randomStringFormatter(str: String) : String = {
+    val possibleColors = Seq (
+      "\u001b[30m",
+      "\u001b[32m",
+      "\u001b[33m",
+      "\u001b[34m",
+      "\u001b[35m",
+      "\u001b[36m",
+      "\u001b[37m"
+    )
+    val rand = new Random(System.currentTimeMillis())
+    val random_index = rand.nextInt(possibleColors.length)
+    possibleColors(random_index) + str + Console.RESET
+
+  }
+
+  def add(workingDir : File, fileNames : Seq[String]) : (String, Boolean) = {
+    fileNames match {
+      case Seq() => ("no file selected", false)
+      case Seq(".") => {
+      workingDir.listRecursively
+      .filter(!_.isChildOf(workingDir/Constants.SGIT_ROOT))
+      .filterNot(_.name == Constants.SGIT_ROOT)
+      .filter(!_.name.contains("DS_Store"))//TODO remove
+      .filter(!_.name.equals("sgit"))
+      .filterNot(_.isDirectory)
+      .foreach(file => Blob(file, workingDir.pathAsString).save())
+        ("", true)
+      }
+      case _ => {
+        var retString = ""
+        var retBool = true
+        fileNames.foreach(fileName => {
+          if ((workingDir/fileName).notExists) {
+            retString = s"$fileName " + Constants.MSG_NOT_FOUND
+            retBool = false
+          }
+          else if ((workingDir/fileName).isRegularFile) {
+            Blob(workingDir/fileName, workingDir.pathAsString).save()
+            retString = ""
+            retBool = true
+          }
+          else {
+            retString = Constants.MSG_INVALID_FILE
+            retBool = false
+          }
+        })
+        (retString, retBool)
+      }
+    }
+  }
+
+
   val helpMessage : String = """
   Usage:
     Create an empty Sgit repository

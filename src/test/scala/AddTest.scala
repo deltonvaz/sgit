@@ -1,53 +1,64 @@
 import better.files.Dsl.{cwd, mkdirs}
 import better.files.File
-import misc.FileHandler
-import org.scalatest.{BeforeAndAfter, FlatSpec}
+import misc.{Constants, FileHandler, Functions}
+import org.scalatest.{BeforeAndAfter, FlatSpec, Outcome}
 
 class AddTest extends FlatSpec with BeforeAndAfter {
 
   val fileName1 = "nome com espaco.txt"
   val fileName2 = "file2.txt"
-  val workingPath : File = mkdirs(cwd/"testFolder")
-  val sgit = Sgit(workingPath.path.toString)
-  val file1 : File  = (workingPath/fileName1).createIfNotExists()
-  val file2 : File = (workingPath/fileName2).createIfNotExists()
-  val index : File = workingPath/".sgit"/"INDEX"
-  val fileHandler : FileHandler = FileHandler(workingPath)
+  val fileName3 = ".wierdfileNˆa*me.txt"
+  var workingPath : File = File.home
+  var file1 : File = workingPath
+  var file2 : File = workingPath
+  var file3 : File = workingPath
+
+  var emptyFileName: Seq[String] = Seq()
+  var nonExistendFileName: Seq[String] = Seq()
+  var uniqueFileName : Seq[String] = Seq()
+  var allFiles : Seq[String] = Seq()
 
   behavior of "add sgit method"
 
-  it should "return error when the file does not exists" in {
+  override def withFixture(test: NoArgTest): Outcome = {
+    try super.withFixture(test)
+    finally {
+      workingPath.deleteOnExit()
+      workingPath.delete()
+    }
+  }
+
+  before {
+    workingPath = mkdirs(cwd/"testFolder")
+    file1 = (workingPath/fileName1).createIfNotExists()
+    file2 = (workingPath/fileName2).createIfNotExists()
+    file3 = (workingPath/fileName3).createIfNotExists()
+
+    emptyFileName = Seq("")
+    nonExistendFileName = Seq("dontExists")
+    uniqueFileName = Seq(fileName1)
+    allFiles = Seq(".")
+
     Sgit(workingPath.path.toString).init()
-
-    Sgit(workingPath.path.toString).add("dontExists")
   }
 
-  ignore
+  it should "return error when the file does not exists" in {
+    assertResult(Functions.add(workingPath, nonExistendFileName)) (nonExistendFileName.mkString("")+" "+Constants.MSG_NOT_FOUND, false)
+  }
+
   it should "create a single blob when single document is added" in {
-    Sgit(workingPath.path.toString).add("alface.txt")
-  }
-
-  ignore
-  it should "create a single blob when single document inside a folder is added" in {
-    Sgit(workingPath.path.toString).add("example.txt")
+    assertResult(Functions.add(workingPath, uniqueFileName)) ("", true)
+    assert((workingPath/Constants.OBJECTS_FOLDER/file1.sha1).exists)
   }
 
   it should "create multiple blobs when . is used as parameter to add" in {
-
     file1.appendLine("tst1")
     file2.appendLine("tst2")
-
-    Sgit(workingPath.path.toString).add(".")
-
-    assert((workingPath/".sgit"/"objects"/file1.sha1).exists)
-    assert((workingPath/".sgit"/"objects"/file2.sha1).exists)
-
+    assertResult(Functions.add(workingPath, allFiles)) ("", true)
+    assert((workingPath/Constants.OBJECTS_FOLDER/file1.sha1).exists)
+    assert((workingPath/Constants.OBJECTS_FOLDER/file2.sha1).exists)
+    assert((workingPath/Constants.OBJECTS_FOLDER/file3.sha1).exists)
   }
 
-  "IN THEEE EEEEEEND" should "delete test folders" in {
-    workingPath.deleteOnExit()
-    workingPath.delete()
-    assert(!workingPath.isDirectory)
-  }
 
 }

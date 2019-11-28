@@ -2,8 +2,6 @@ package misc
 
 import better.files.File
 
-import scala.util.matching.Regex
-
 case class StageHandler(workingDir : String) {
 
   val workDir = File(workingDir)
@@ -18,10 +16,9 @@ case class StageHandler(workingDir : String) {
   def getStagedFilesNameRec : Set[String] = {
     val staged = (workDir/Constants.SGIT_ROOT/"INDEX").lines
     var stagedFiles: Set[String] = Set()
-    staged.foreach {
-      case Constants.STAGE_PATTERN(sha1, fileName) =>
-        stagedFiles = stagedFiles.+(fileName)
-    }
+    staged.foreach(file => {
+      stagedFiles = stagedFiles.+(file.split(" ")(1))
+    })
     stagedFiles
   }
 
@@ -32,17 +29,11 @@ case class StageHandler(workingDir : String) {
   def getStagedFilesName : Set[String] = {
     val staged = (workDir/Constants.SGIT_ROOT/"INDEX").lines
     var stagedFiles: Set[String] = Set()
+
     staged.foreach(file => {
-      val StagePattern: Regex = """(\w+) +(\w+.+)""".r
-      val StagePatternFile: Regex = """(\w+) +(\w+\/)""".r
-      val StagePatternFolder: Regex = """(\w+)\s(.*?\/)""".r
-      file match {
-        case StagePatternFolder(sha1, folder) =>
-          stagedFiles = stagedFiles.+(folder)
-        case StagePattern(sha, fileName) =>
-          stagedFiles = stagedFiles.+(fileName)
-      }
+      stagedFiles = stagedFiles.+(file.split(" ")(1))
     })
+
     stagedFiles
   }
 
@@ -53,10 +44,9 @@ case class StageHandler(workingDir : String) {
   def getStagedFiles : Set[File] = {
     val staged = (workDir/Constants.SGIT_ROOT/"INDEX").lines
     var stagedFiles: Set[File] = Set()
-    staged.foreach {
-      case Constants.STAGE_PATTERN(sha1, fileName) =>
-        stagedFiles = stagedFiles.+(File(fileName))
-    }
+    staged.foreach(file => {
+      stagedFiles = stagedFiles.+(File(file.split(" ")(1)))
+    })
     stagedFiles
   }
 
@@ -74,12 +64,9 @@ case class StageHandler(workingDir : String) {
     */
   def getStageBLOBS : Map[String, String] = {
     var blobSHAs = Map[String, String]()
-    getStagedFileLines.foreach {
-      case Constants.STAGE_PATTERN(id, fileName) => {
-        blobSHAs = blobSHAs + (fileName -> id) //fileName unique
-      }
-      case _ => println(Console.RED + "Error reading staged files" + Console.RESET)
-    }
+    getStagedFileLines.foreach(str => {
+      blobSHAs = blobSHAs + (str.split(" ")(1) -> str.split(" ")(0))
+    })
     blobSHAs
   }
 
