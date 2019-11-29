@@ -28,7 +28,7 @@ case class CommitHandler (workingDir : String) {
 
       val lastCommit = (File(workingDir)/Constants.SGIT_ROOT/currentBranch).lines.head
 
-      (File(workingDir)/Constants.OBJECTS_FOLDER/getTreeFromCommitSHA(lastCommit)).lines.foreach(str => {
+      (File(workingDir)/Constants.OBJECTS_FOLDER/getTreeFromCommitSHA(lastCommit, parent = false)).lines.foreach(str => {
         retVal = retVal + (str.split(" ")(1) -> str.split(" ")(0))
       })
 //      {
@@ -43,16 +43,21 @@ case class CommitHandler (workingDir : String) {
   }
 
   /**
-    * Function to get the tree from given commit
+    * Function to get the tree file (with SHA1) from given commit
     * @param commitSHA header of commit in (tree parent date comment) pattern
+    * @param parent boolean to get commit's parent files
     * @return SHA1 that commitHeader points to
     */
-  def getTreeFromCommitSHA(commitSHA : String) : String = {
+  def getTreeFromCommitSHA(commitSHA : String, parent : Boolean) : String = {
     val lastCommitTree = (File(workingDir)/Constants.OBJECTS_FOLDER/commitSHA).lines.head
     var commitTreeSHA = ""
     lastCommitTree match {
         case Constants.COMMIT_PATTERN(treeSHA, parentSha, date, comment, user) => {
-        commitTreeSHA = treeSHA
+          if (parent){
+            commitTreeSHA = parentSha
+          }else{
+            commitTreeSHA = treeSHA
+          }
       }
         case _ => println(Console.RED + "Error reading commited files" + Console.RESET)
     }
@@ -93,7 +98,7 @@ case class CommitHandler (workingDir : String) {
     val lastCommit = (File(workingDir)/Constants.SGIT_ROOT/currentBranch).lines.head
 
     var commitFiles: Set[String] = Set()
-    (File(workingDir) / Constants.OBJECTS_FOLDER / getTreeFromCommitSHA(lastCommit)).lines.foreach {
+    (File(workingDir) / Constants.OBJECTS_FOLDER / getTreeFromCommitSHA(lastCommit, parent = false)).lines.foreach {
       case Constants.STAGE_PATTERN(sha1, fileName) => {
         commitFiles = commitFiles.+(fileName)
       }
@@ -133,8 +138,7 @@ case class CommitHandler (workingDir : String) {
           msg = msg + "\t\t"+comment + "\n\n"
           println(msg)
           if(historic){
-            val lines = FileHandler(File(workingDir)).getDiffLinesWithStaged
-            println("linhas do historico" + lines)
+            val lines = FileHandler(File(workingDir)).getDiffLinesWithParent(commitSha)
             lines.foreach(f => {
               println("Modifications in " + f._1 + " file")
               f._2.foreach(lines => {
@@ -152,6 +156,54 @@ case class CommitHandler (workingDir : String) {
         }
         case _ => println(Console.RED + "Error reading commited files" + Console.RESET)
       }
+  }
+
+  /**
+    * Compare differences between a commit and its parent
+    * @param commitSha
+    * @return
+    */
+  def compareCommitFilesWithParent(commitSha : String) : Map[String, IndexedSeq[(String, String)]] = {
+    val commitTree = getTreeFromCommitSHA(commitSha, parent = false)
+    val parentCommitTree = getTreeFromCommitSHA(commitSha, parent = true)
+
+    var retVal : Map[String, IndexedSeq[(String, String)]] = Map()
+
+    if(parentCommitTree !=  "NONE"){
+      val parentCommitFiles = getTreeFromCommitSHA(parentCommitTree, parent = false)
+      val currentCommit = (File(workingDir)/Constants.OBJECTS_FOLDER/commitTree).lines.toIndexedSeq
+      val parentCommit = (File(workingDir)/Constants.OBJECTS_FOLDER/parentCommitFiles).lines.toIndexedSeq
+
+      var currentCommitBlobSHAs = Map[String, String]()
+      currentCommit.foreach(file => {
+        currentCommitBlobSHAs = currentCommitBlobSHAs + (file.split(" ")(1) -> file.split(" ")(0))
+      })
+
+      var parentCommitBlobSHAs = Map[String, String]()
+      parentCommit.foreach(file => {
+        parentCommitBlobSHAs = parentCommitBlobSHAs + (file.split(" ")(1) -> file.split(" ")(0))
+      })
+
+      //Check modified files
+      currentCommitBlobSHAs
+        .foreach(fileName => {
+          if(!parentCommitBlobSHAs.exists(_ == (fileName._2 -> fileName._1)) && parentCommitBlobSHAs.contains(fileName._1)) {
+            val parentSHA = parentCommitBlobSHAs.get(fileName._1)
+            val parentLines = (File(workingDir)/Constants.OBJECTS_FOLDER/parentSHA.get).lines.toIndexedSeq
+            val childSHA = fileName._2
+            val childLines = (File(workingDir)/Constants.OBJECTS_FOLDER/childSHA).lines.toIndexedSeq
+
+            val removed = (parentLines diff childLines).map(line => ("removed(-)", line))
+            val added = (childLines diff parentLines).map(line => ("added(+)", line))
+            val mappedLines : IndexedSeq[(String, String)] = removed++added.sortBy(_._2).toIndexedSeq
+            retVal = retVal.+(fileName._1 -> mappedLines)
+          }
+        })
+
+    }
+
+    retVal
+
   }
 
 

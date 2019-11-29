@@ -16,7 +16,7 @@ class FileHandlerTest extends FunSuite {
   }
 
   test("testGetModifiedFilesFromWorkingDirectory") {
-    FileHandler(File(path)).getModifiedFilesFromWorkingDirectory
+    FileHandler(File(path)).getModifiedFilesFromWorkingDirectory(false)
   }
 
   test("in the end delete all files") {

@@ -92,24 +92,35 @@ case class FileHandler(var workingDirectory : File){
     * where fileStatus could be deleted, modified or new
     * @return a map[fileName, {deleted, modified, new}]
     */
-  def getModifiedFilesFromWorkingDirectory : Map[String, Int] = {
+  def getModifiedFilesFromWorkingDirectory(shaValue : Boolean) : Map[String, Int] = {
     var files : Map[String, Int] = Map()
     val stage = StageHandler(workingDirectory.path.toString)
-    //Get deleted
-    stage
-      .getStagedFilesNameRec.diff(getWorkingDirFilesRec)
-      .foreach(f => {
-        files += (f -> Constants.DELETED)
-      })
-    //get modified
-    var shaWorkingDir : String = ""
-    getWorkingDirFilesRec
-      .foreach(fileName => {
-      shaWorkingDir = (workingDirectory/fileName).sha1
-      if(!stage.getStageBLOBS.exists(_ == (fileName -> shaWorkingDir)) && stage.getStageBLOBS.contains(fileName)) {
-        files += (fileName -> Constants.MODIFIED)
-      }
-    })
+    if(!shaValue){
+      //Get deleted
+      stage
+        .getStagedFilesNameRec.diff(getWorkingDirFilesRec)
+        .foreach(f => {
+          files += (f -> Constants.DELETED)
+        })
+      //get modified
+      var shaWorkingDir : String = ""
+      getWorkingDirFilesRec
+        .foreach(fileName => {
+          shaWorkingDir = (workingDirectory/fileName).sha1
+          if(!stage.getStageBLOBS.exists(_ == (fileName -> shaWorkingDir)) && stage.getStageBLOBS.contains(fileName)) {
+            files += (fileName -> Constants.MODIFIED)
+          }
+        })
+    }else {
+      var shaWorkingDir : String = ""
+      getWorkingDirFilesRec
+        .foreach(fileName => {
+          shaWorkingDir = (workingDirectory/fileName).sha1
+          if(!stage.getStageBLOBS.exists(_ == (fileName -> shaWorkingDir)) && stage.getStageBLOBS.contains(fileName)) {
+            files += (shaWorkingDir -> Constants.MODIFIED)
+          }
+        })
+    }
     files
   }
 
@@ -121,7 +132,7 @@ case class FileHandler(var workingDirectory : File){
     var stagedLines : IndexedSeq[String] = IndexedSeq()
     var workingLines : IndexedSeq[String] = IndexedSeq()
     var retVal : Map[String, IndexedSeq[(String, String)]] = Map()
-    getModifiedFilesFromWorkingDirectory
+    getModifiedFilesFromWorkingDirectory(false)
       .filter(_._2 == Constants.MODIFIED)
       .foreach(file => {
         val fileSha = StageHandler(workingDirectory.path.toString).getContentFromName(file._1)
@@ -139,22 +150,44 @@ case class FileHandler(var workingDirectory : File){
     *
     * @return A map[fileName, IndexedSeq[(removedOrAdded, lines)]
     */
-  def getDiffLinesBetweenCommits(commit1Sha : String, commit2Sha : String) : Map[String, IndexedSeq[(String, String)]]  = { //old -> new
-    var stagedLines : IndexedSeq[String] = IndexedSeq()
-    var workingLines : IndexedSeq[String] = IndexedSeq()
-    var retVal : Map[String, IndexedSeq[(String, String)]] = Map()
-    getModifiedFilesFromWorkingDirectory
-      .filter(_._2 == Constants.MODIFIED)
-      .foreach(file => {
-        val fileSha = StageHandler(workingDirectory.path.toString).getContentFromName(file._1)
-        stagedLines = (workingDirectory/Constants.OBJECTS_FOLDER/fileSha.get).lines.toIndexedSeq
-        workingLines = (workingDirectory/file._1).lines.toIndexedSeq
-        val removed = (stagedLines diff workingLines).map(line => ("removed(-)", line))
-        val added = (workingLines diff stagedLines).map(line => ("added(+)", line))
-        val mappedLines : IndexedSeq[(String, String)] = removed++added.sortBy(_._2).toIndexedSeq
-        retVal = retVal.+(file._1 -> mappedLines)
-      })
-    retVal
+  def getDiffLinesWithParent(commitSha : String) : Map[String, IndexedSeq[(String, String)]]  = { //old -> new
+    val commit = CommitHandler(workingDirectory.path.toString)
+    commit.compareCommitFilesWithParent(commitSha)
+
+//    //parent commit lines
+//    var stagedLines : IndexedSeq[String] = IndexedSeq()
+//    //current commit lines
+//    var workingLines : IndexedSeq[String] = IndexedSeq()
+//    //returned values with [docName, Seq[line, added/removed]]
+//    var retVal : Map[String, IndexedSeq[(String, String)]] = Map()
+//
+//    var modifiedFiles : Map[String, Int] = Map()
+//    println("commitSHA "+ commitSha)
+//
+//    modifiedFiles = getModifiedFilesFromCommit(commitSha)
+
+//    modifiedFiles
+//      .filter(_._2 == Constants.MODIFIED)
+//      .foreach(file => {
+//        val currentCommitLines = StageHandler(workingDirectory.path.toString).getObjectContent(file._1)
+//        val parentCommitLines = StageHandler(workingDirectory.path.toString).getObjectContent(file._2)
+//        println(file._1)
+//        println(file._2)
+////        val fileSha = StageHandler(workingDirectory.path.toString).getContentFromName(file._1)
+////        //parent
+////        stagedLines = (workingDirectory/Constants.OBJECTS_FOLDER/fileSha.get).lines.toIndexedSeq
+////        //current
+////        workingLines = (workingDirectory/file._1).lines.toIndexedSeq
+////
+//////        println(stagedLines)
+//////        println(workingLines)
+////
+////        val removed = (stagedLines diff workingLines).map(line => ("removed(-)", line))
+////        val added = (workingLines diff stagedLines).map(line => ("added(+)", line))
+////        val mappedLines : IndexedSeq[(String, String)] = removed++added.sortBy(_._2).toIndexedSeq
+////        retVal = retVal.+(file._1 -> mappedLines)
+//      })
+//    retVal
   }
 
 }

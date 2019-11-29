@@ -93,4 +93,8 @@ case class StageHandler(workingDir : String) {
     getStageBLOBS.get(fileName)
   }
 
+  def getObjectContent(objectSHA : String) : Option[File] = {
+    Some(workDir/Constants.OBJECTS_FOLDER/objectSHA)
+  }
+
 }

@@ -42,6 +42,11 @@ class LogTest extends FlatSpec with BeforeAndAfter {
     assert(commitHandler.getCommitsHistoric(true), true)
   }
 
+//  "get modified files from commit" should "return files modified" in {
+//    //FileHandler(workingPath).getDiffLinesWithParent("2D3B3124F6AA56E1617DA63B565089907C2A10AA")
+////    commitHandler.getCommitsHistoric(true), true
+//  }
+
   it should "insert into head ref the last commit reference" in {
     sgit.commit("first commit")
   }

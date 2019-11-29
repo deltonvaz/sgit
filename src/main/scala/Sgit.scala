@@ -71,7 +71,6 @@ case class Sgit (var workingDirectory : String) {
     //Default if first commit
     var parentCommitSHA = "NONE"
     if (!isFirstCommit) {
-      println("is first commit???")
       parentCommitSHA = (File(workingDirectory)/Constants.DEFAULT_HEAD_PATH).lines.head
     }
 
@@ -90,11 +89,13 @@ case class Sgit (var workingDirectory : String) {
       .clear
       .appendLine(parentCommitSHA)
 
+    //TODO change parent commit to current commit and files added
     outMessage = s"[${branch.getCurrentBranch} (root-commit) $parentCommitSHA] $message\n"+
       s" ${stageBlob.size} files changed, ${stageBlob.size} insertions(+)\n"
 
     var newFiles : String = ""
 
+    //TODO check this create
     stageBlob.foreach(f =>{
       newFiles = " create "+f._1+"\n"+newFiles
     })
@@ -144,9 +145,9 @@ case class Sgit (var workingDirectory : String) {
      */
     //if(!isFirstCommit) {
       var modifiedStage = ""
-      if (FileHandler(workingDir).getModifiedFilesFromWorkingDirectory.nonEmpty) {
+      if (FileHandler(workingDir).getModifiedFilesFromWorkingDirectory(false).nonEmpty) {
         message += "Changes not staged for commit:\n\t(use \"sgit add <file>...\" to update what will be committed)\n\n"
-        FileHandler(workingDir).getModifiedFilesFromWorkingDirectory.toSeq.sortBy(_._2).reverse.foreach(f => {
+        FileHandler(workingDir).getModifiedFilesFromWorkingDirectory(false).toSeq.sortBy(_._2).reverse.foreach(f => {
           f._2 match {
             case Constants.DELETED => modifiedStage += "\t\tdeleted: " + f._1 + "\n"
             case Constants.MODIFIED => modifiedStage += "\t\tmodified: " + f._1 + "\n"
