@@ -48,7 +48,7 @@ A Scala-based git-like code source manager
  - [ ] sgit rebase <branch\> :construction_worker:
  - [ ] sgit rebase -i :construction_worker:
  
- 
+ ---
 :shipit:
 
 
