@@ -8,7 +8,7 @@ A Scala-based git-like code source manager
 
 ### Prerequisites
 
-* openjdk8, 
+* JDK11+, 
 * Scala 2.13.10+
 * sbt version 1.3.2+
 
@@ -16,9 +16,18 @@ A Scala-based git-like code source manager
 
 1. Use `make` to generate `sgit` 
     1. This command will run `sbt assembly` to generate a sgit executable into sgit directory
+    
+    2. If you want to use `sgit` as any other command then you need to add it to your PATH using the following command `export PATH=$PATH:/path/to/sgit`
+        
+    3. If you want to use `sgit` as any other command then you need to add it to your PATH using the following command:
 
 2. To use `sgit` commands:
-    - `./sgit commandName commandParameter(s)`
+
+    - Default `./sgit commandName commandParameter(s)`
+    - Using java `java -jar ./sgit commandName commandParameter(s)`
+
+
+## Available Commands
 
  - [x] sgit init
  - [x] sgit add \<filenames> .
@@ -39,7 +48,7 @@ A Scala-based git-like code source manager
  - [ ] sgit rebase <branch\> :construction_worker:
  - [ ] sgit rebase -i :construction_worker:
  
- 
+ ---
 :shipit:
 
 
