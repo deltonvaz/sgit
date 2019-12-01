@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.com/deltonvaz/sgit.svg?branch=master)](https://travis-ci.com/deltonvaz/sgit)
 
-#SGIT
+# SGIT
 
 A Scala-based git-like code source manager
 
@@ -31,7 +31,7 @@ A Scala-based git-like code source manager
  - [x] sgit branch  \<branch>
  - [x] sgit branch -av -ALL
   ```diff
-  - -ALL is imperative
+  -ALL is imperative
   ```
  - [ ] sgit checkout <branch\> :construction_worker:
  - [x] sgit tag <tag\> 
