@@ -20,9 +20,9 @@ A Scala-based git-like code source manager
     2. If you want to use `sgit` as any other command then you need to add it to your PATH
 
 2. To use `sgit` commands:
-    Default
-    - `./sgit commandName commandParameter(s)`
-    - `java -jar`
+
+    - Default `./sgit commandName commandParameter(s)`
+    - Using java `java -jar ./sgit commandName commandParameter(s)`
 
 
  - [x] sgit init
