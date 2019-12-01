@@ -1,8 +1,8 @@
+import UI.Config
 import better.files.File
-import better.files.Dsl.{cwd, mkdirs}
-import misc.{BranchHandler, CommitHandler, Config, Constants, FileHandler, Functions, StageHandler, TagHandler}
-import objects.{Blob, Commit, Tree}
-import scopt.OParser
+import better.files.Dsl.{cwd}
+import misc.{BranchHandler, CommitHandler, Constants, FileHandler, Functions, StageHandler, TagHandler}
+import objects.{Commit, Tree}
 
 case class Sgit (var workingDirectory : String) {
 
@@ -37,7 +37,7 @@ case class Sgit (var workingDirectory : String) {
     if (msgType) {
       Functions.stringFormatter(message, Console.GREEN)
     } else {
-      Functions.stringFormatter(message, Console.RED)
+      Functions.printError(message)
     }
   }
 
@@ -115,59 +115,7 @@ case class Sgit (var workingDirectory : String) {
     */
   def status() : Unit = {
     if (!loadSystem) return
-    var message: String = ""
-
-    if(isFirstCommit){
-      message = s"On branch master\n\nNo commits yet\n\n"
-    }else{
-      message = s"On branch ${BranchHandler(workingDirectory).getCurrentBranch}\n\n"
-    }
-
-    /*
-      Check changes to be commited
-     */
-    if(!stage.isStageSync){
-      message = message + "Changes to be commited:\n\n"
-      var stagedFileNamesString:String = ""
-      stage.getModifiedFilesInStage
-        .toSeq.sortBy(_._2).foreach(f => {
-        f._2 match {
-          case Constants.NEW => stagedFileNamesString += Console.GREEN + "\t\tnew file: " + f._1 + "\n" + Console.RESET
-          case Constants.MODIFIED => stagedFileNamesString += Console.GREEN + "\t\tmodified: " + f._1 + "\n" + Console.RESET
-        }
-      })
-
-      message = message + Console.GREEN + stagedFileNamesString + Console.RESET + "\n"
-    }
-
-    /*
-      Check untracked and modified files from workingDir files
-     */
-    //if(!isFirstCommit) {
-      var modifiedStage = ""
-      if (FileHandler(workingDir).getModifiedFilesFromWorkingDirectory(false).nonEmpty) {
-        message += "Changes not staged for commit:\n\t(use \"sgit add <file>...\" to update what will be committed)\n\n"
-        FileHandler(workingDir).getModifiedFilesFromWorkingDirectory(false).toSeq.sortBy(_._2).reverse.foreach(f => {
-          f._2 match {
-            case Constants.DELETED => modifiedStage += "\t\tdeleted: " + f._1 + "\n"
-            case Constants.MODIFIED => modifiedStage += "\t\tmodified: " + f._1 + "\n"
-          }
-        })
-        message += Console.RED + modifiedStage + Console.RESET + "\n"
-      }
-    //}
-
-    val newFiles = FileHandler(workingDir).getWorkingDirFilesRec.diff(stage.getStagedFilesNameRec)
-
-    if(newFiles.nonEmpty){
-      message += "Untracked files:\n\t(use \"sgit add <file>...\" to include in what will be committed)\n\n"
-      var untrackedFiles: String = ""
-      newFiles.foreach(fileName => untrackedFiles = "\t\t"+fileName+"\n"+untrackedFiles)
-      message = message + Console.RED + untrackedFiles + Console.RESET
-    }
-
-    println(message)
-
+    println(Functions.status(workingDir)._1)
   }
 
   /**
@@ -179,12 +127,8 @@ case class Sgit (var workingDirectory : String) {
       println(Console.RED + "fatal: not a sgit repository" + Console.RESET)
       return false
     }
-//    if(!FileHandler(workingDir).hasPermission) {
-//      println(Console.RED + "fatal: not allowed to initialize sgit" + Console.RESET)
-//      return false
-//    }
-    head = workingDir/Constants.SGIT_ROOT/"HEAD"
 
+    head = workingDir/Constants.SGIT_ROOT/"HEAD"
     true
   }
 
@@ -213,7 +157,7 @@ case class Sgit (var workingDirectory : String) {
     */
   def branch(branchCommand : String, all : Boolean, verbose : Boolean) : Unit = {
     if(!isFirstCommit) {
-      if(all){
+      if(all || verbose){
         println("Branches\n")
         println(branch.getBranches)
         if(!(TagHandler(workingDirectory).getTags == "")){
@@ -223,18 +167,6 @@ case class Sgit (var workingDirectory : String) {
       }else{
         println(branch.newBranch(branchCommand))
       }
-//      branchCommand match {
-//        case "-av" => {
-//          println("Branches\n")
-//          println(branch.getBranches)
-//          if(!(TagHandler(workingDirectory).getTags == "")){
-//            println("\nTags\n")
-//            println(TagHandler(workingDirectory).getTags)
-//          }
-//        }
-//        case _ if branchCommand.equals("") => println("invalid command")
-//        case _ => println(branch.newBranch(branchCommand))
-//      }
     }else{
       println("fatal: Not a valid object name: 'master'.") //TODO remove
     }
@@ -256,17 +188,7 @@ case class Sgit (var workingDirectory : String) {
     * @param changes
     */
   def log(changes : Boolean, stat : Boolean) : Unit = {
-    if(changes){
-      println("Show changes overtime")
-    }else if(stat){
-      println("Show stats about changes overtime")
-    }
-    CommitHandler(workingDirectory).getCommitsHistoric(true)
-
-    //mostra o commit
-
-    //se changes = true mostra o diff do commit em relacao ao head
-
+    CommitHandler(workingDirectory).getCommitsHistoric(changes)
   }
 
 }
@@ -359,6 +281,7 @@ object Main extends App{
         case "branch" => sgit.branch(config.branchName, config.showAll, config.verbose)
         case "tag" => sgit.tag(config.tagName)
         case "log" => sgit.log(config.plog, config.statLog)
+        case _ => print("Error: Unknown argument\nTry --help for more information.")
       }
     case _ =>
     // arguments are bad, error message will have been displayed

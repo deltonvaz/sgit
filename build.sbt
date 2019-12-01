@@ -16,10 +16,6 @@ lazy val root = (project in file("."))
 assemblyOption in assembly := (assemblyOption in assembly).value
   .copy(prependShellScript = Some(defaultUniversalScript(shebang = false)))
 
-assemblyJarName in assembly := s"${name.value}"
-
-test in assembly := {} //TODO remove!
-
 parallelExecution in Test := false
 
 //Export to root dir

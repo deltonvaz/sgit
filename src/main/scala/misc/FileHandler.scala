@@ -15,14 +15,27 @@ case class FileHandler(var workingDirectory : File){
   /**
     * Function used to create git base files
     */
-  def createGitBaseFiles(): Unit = {
-    (workingDirectory/".sgit").createDirectoryIfNotExists()
-    (workingDirectory/".sgit"/"HEAD").createFileIfNotExists()
-    (workingDirectory/".sgit"/"INDEX").createFileIfNotExists()
-    (workingDirectory/".sgit"/"objects").createDirectoryIfNotExists()
-    (workingDirectory/".sgit"/"refs").createDirectoryIfNotExists()
-    (workingDirectory/".sgit"/"refs"/"heads").createDirectoryIfNotExists()
-    (workingDirectory/".sgit"/"refs"/"tags").createDirectoryIfNotExists()
+  def createGitBaseFiles(): Boolean = {
+    var sgit : File = File.home
+    var head : File = File.home
+    var index : File = File.home
+    var objects : File = File.home
+    var refs : File = File.home
+    var heads : File = File.home
+    var tags : File = File.home
+    try{
+      sgit = (workingDirectory/".sgit").createDirectoryIfNotExists()
+      head = (workingDirectory/".sgit"/"HEAD").createFileIfNotExists()
+      index = (workingDirectory/".sgit"/"INDEX").createFileIfNotExists()
+      objects = (workingDirectory/".sgit"/"objects").createDirectoryIfNotExists()
+      refs = (workingDirectory/".sgit"/"refs").createDirectoryIfNotExists()
+      heads = (workingDirectory/".sgit"/"refs"/"heads").createDirectoryIfNotExists()
+      tags = (workingDirectory/".sgit"/"refs"/"tags").createDirectoryIfNotExists()
+    }catch {
+      case _: Throwable => Functions.printError("Got an exception when creating sgit base files")
+        return false
+    }
+    true
   }
 
   /**
@@ -153,41 +166,6 @@ case class FileHandler(var workingDirectory : File){
   def getDiffLinesWithParent(commitSha : String) : Map[String, IndexedSeq[(String, String)]]  = { //old -> new
     val commit = CommitHandler(workingDirectory.path.toString)
     commit.compareCommitFilesWithParent(commitSha)
-
-//    //parent commit lines
-//    var stagedLines : IndexedSeq[String] = IndexedSeq()
-//    //current commit lines
-//    var workingLines : IndexedSeq[String] = IndexedSeq()
-//    //returned values with [docName, Seq[line, added/removed]]
-//    var retVal : Map[String, IndexedSeq[(String, String)]] = Map()
-//
-//    var modifiedFiles : Map[String, Int] = Map()
-//    println("commitSHA "+ commitSha)
-//
-//    modifiedFiles = getModifiedFilesFromCommit(commitSha)
-
-//    modifiedFiles
-//      .filter(_._2 == Constants.MODIFIED)
-//      .foreach(file => {
-//        val currentCommitLines = StageHandler(workingDirectory.path.toString).getObjectContent(file._1)
-//        val parentCommitLines = StageHandler(workingDirectory.path.toString).getObjectContent(file._2)
-//        println(file._1)
-//        println(file._2)
-////        val fileSha = StageHandler(workingDirectory.path.toString).getContentFromName(file._1)
-////        //parent
-////        stagedLines = (workingDirectory/Constants.OBJECTS_FOLDER/fileSha.get).lines.toIndexedSeq
-////        //current
-////        workingLines = (workingDirectory/file._1).lines.toIndexedSeq
-////
-//////        println(stagedLines)
-//////        println(workingLines)
-////
-////        val removed = (stagedLines diff workingLines).map(line => ("removed(-)", line))
-////        val added = (workingLines diff stagedLines).map(line => ("added(+)", line))
-////        val mappedLines : IndexedSeq[(String, String)] = removed++added.sortBy(_._2).toIndexedSeq
-////        retVal = retVal.+(file._1 -> mappedLines)
-//      })
-//    retVal
   }
 
 }

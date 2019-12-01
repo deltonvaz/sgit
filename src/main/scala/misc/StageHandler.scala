@@ -97,4 +97,23 @@ case class StageHandler(workingDir : String) {
     Some(workDir/Constants.OBJECTS_FOLDER/objectSHA)
   }
 
+  /**
+    * Remove file object from staged area
+    * @param objectName
+    * @return
+    */
+  def removeStagged(objectName : String) : Boolean = {
+    var stagedFiles : Map[String, String] = FileHandler(workDir).getStagedArea.get
+    if(stagedFiles.contains(objectName)){
+      stagedFiles = stagedFiles.-(objectName)
+      val stagedArea = (workDir/Constants.SGIT_INDEX).clear()
+      stagedFiles.foreach(str => {
+        stagedArea.appendLine(str._2 + " " + str._1)
+      })
+      true
+    }else{
+      false
+    }
+  }
+
 }

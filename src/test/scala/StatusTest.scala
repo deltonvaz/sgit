@@ -1,33 +1,97 @@
 import better.files.Dsl.{cwd, mkdirs}
 import better.files.File
-import org.scalatest.{BeforeAndAfter, FlatSpec}
+import misc.{FileHandler, Functions}
+import org.scalatest.{BeforeAndAfter, FlatSpec, Outcome}
 
 class StatusTest extends FlatSpec with BeforeAndAfter {
 
-  val workingPath : File = mkdirs(cwd/"testFolder")
-  val sgit = Sgit(workingPath.path.toString)
-  val fileName1 = "nome com espaco.txt"
-  val fileName2 = "file2.txt"
-  val folderName = "folder"
-  val folder : File  = (workingPath/folderName).createDirectoryIfNotExists()
-  val file1 : File  = (workingPath/folderName/fileName1).createFileIfNotExists()
-  val file2 : File = (workingPath/fileName2).createIfNotExists()
+  val fileName1 = "fileName1.txt"
+  var workingPath : File = File.home
+  var file1 : File = workingPath
 
-//  before {
-//  }
-//
-//  behavior of "sgit status"
-//  it should "show status of the system" in {
-//    sgit.init()
-//    sgit.add(file1.path.toString)
-//    sgit.add(fileName2)
-//    sgit.status()
-//  }
-//
-//  "IN THEEE EEEEEEND" should "delete test folders" in {
-//    workingPath.deleteOnExit()
-//    workingPath.delete()
-//    assert(!workingPath.isDirectory)
-//  }
+  var uniqueFileName : Seq[String] = Seq()
+
+  override def withFixture(test: NoArgTest): Outcome = {
+    try super.withFixture(test)
+    finally {
+      workingPath.deleteOnExit()
+      workingPath.delete()
+    }
+  }
+
+  before {
+    workingPath = mkdirs(cwd/"testFolder")
+    uniqueFileName = Seq(fileName1)
+    assertResult(FileHandler(workingPath).createGitBaseFiles()) (true)
+  }
+
+  "when it is the first commit" should "show that there is no commits yet" in {
+    assertResult(
+      Functions.status(workingPath)
+        ._2) (
+      Map(
+        "firstCommit" -> true,
+        "changes" -> false,
+        "modified" -> false,
+        "untracked" -> false)
+    )
+  }
+
+  "when there is untracked files" should "should show name of untracked files" in {
+    file1 = (workingPath/fileName1).createIfNotExists()
+    assertResult(
+      Functions.status(workingPath)._2
+    ) (
+      Map(
+        "firstCommit" -> true,
+        "changes" -> false,
+        "modified" -> false,
+        "untracked" -> true)
+    )
+  }
+
+  "when there is added files" should "should show name of added files" in {
+    file1 = (workingPath/fileName1).createIfNotExists()
+    Functions.add(workingPath, uniqueFileName)
+    assertResult(
+      Functions.status(workingPath)._2
+    ) (
+      Map(
+        "firstCommit" -> true,
+        "changes" -> true,
+        "modified" -> false,
+        "untracked" -> false)
+    )
+  }
+
+  "when there is modified files" should "should show name of modified files" in {
+    file1 = (workingPath/fileName1).createIfNotExists()
+    Functions.add(workingPath, uniqueFileName)
+    file1.appendLine("a new line to test")
+    assertResult(
+      Functions.status(workingPath)._2
+    ) (
+      Map(
+        "firstCommit" -> true,
+        "changes" -> true,
+        "modified" -> true,
+        "untracked" -> false)
+    )
+  }
+
+  "when there is deleted files from stage area" should "should show name of deleted files" in {
+    file1 = (workingPath/fileName1).createIfNotExists()
+    Functions.add(workingPath, uniqueFileName)
+    file1.delete()
+    assertResult(
+      Functions.status(workingPath)._2
+    ) (
+      Map(
+        "firstCommit" -> true,
+        "changes" -> true,
+        "modified" -> true,
+        "untracked" -> false)
+    )
+  }
 
 }

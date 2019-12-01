@@ -3,22 +3,26 @@ package misc
 import better.files.File
 import objects.Blob
 
-import scala.io.AnsiColor
 import scala.util.Random
 
 object Functions {
-  /**
-    * Diff printer beautify, should be a general beautify
-    * @param color color used for message
-    * @param lines lines that should be printed with colors
-    */
+
+
   def printDiff(color : String, lines: (String, String)) : Unit = {
     println(color + "\t"+ lines._1 + "\t" + lines._2 + Console.RESET)
   }
 
-
+  /**
+    * Diff printer beautify, should be a general beautify
+    * @param color color used for message
+    * @param str lines that should be printed with colors
+    */
   def stringFormatter(str: String, color: String): String = {
     color + str + Console.RESET
+  }
+
+  def printError(str : String) : Unit = {
+    println(Console.RED + str + Console.RESET)
   }
 
   def randomStringFormatter(str: String) : String = {
@@ -40,23 +44,30 @@ object Functions {
   def add(workingDir : File, fileNames : Seq[String]) : (String, Boolean) = {
     fileNames match {
       case Seq() => ("no file selected", false)
-      case Seq(".") => {
-      workingDir.listRecursively
-      .filter(!_.isChildOf(workingDir/Constants.SGIT_ROOT))
-      .filterNot(_.name == Constants.SGIT_ROOT)
-      .filter(!_.name.contains("DS_Store"))//TODO remove
-      .filter(!_.name.equals("sgit"))
-      .filterNot(_.isDirectory)
-      .foreach(file => Blob(file, workingDir.pathAsString).save())
-        ("", true)
-      }
       case _ => {
         var retString = ""
         var retBool = true
         fileNames.foreach(fileName => {
-          if ((workingDir/fileName).notExists) {
-            retString = s"$fileName " + Constants.MSG_NOT_FOUND
-            retBool = false
+          if(fileName == "."){
+            workingDir.listRecursively
+              .filter(!_.isChildOf(workingDir/Constants.SGIT_ROOT))
+              .filterNot(_.name == Constants.SGIT_ROOT)
+              .filter(!_.name.contains("DS_Store"))//TODO remove
+              .filter(!_.name.equals("sgit"))
+              .filterNot(_.isDirectory)
+              .foreach(file => Blob(file, workingDir.pathAsString).save())
+            retString = ""
+            retBool = true
+          }
+          else if ((workingDir/fileName).notExists) {
+            //If the file is not found I need to check if it is in Stage area and then remove it
+            if(StageHandler(workingDir.pathAsString).removeStagged(fileName)){
+              retString = ""
+              retBool = true
+            }else{
+              retString = s"$fileName " + Constants.MSG_NOT_FOUND
+              retBool = false
+            }
           }
           else if ((workingDir/fileName).isRegularFile) {
             Blob(workingDir/fileName, workingDir.pathAsString).save()
@@ -71,6 +82,71 @@ object Functions {
         (retString, retBool)
       }
     }
+  }
+
+  def status(workingDir : File) : (String, Map[String, Boolean]) = {
+    var message: String = ""
+    var params : Map[String, Boolean] = Map()
+    val stage = StageHandler(workingDir.pathAsString)
+
+    if(CommitHandler(workingDir.pathAsString).isFirstCommit){
+      message = s"On branch master\n\nNo commits yet\n\n"
+      params = params.+("firstCommit" -> true)
+    }else{
+      message = s"On branch ${BranchHandler(workingDir.pathAsString).getCurrentBranch}\n\n"
+      params = params.+("firstCommit" -> false)
+    }
+
+    /*
+      Check changes to be commited
+     */
+    params = params.+("changes" -> false)
+    if(!stage.isStageSync){
+      params = params.+("changes" -> true)
+      message = message + "Changes to be commited:\n\n"
+      var stagedFileNamesString:String = ""
+      stage.getModifiedFilesInStage
+        .toSeq.sortBy(_._2).foreach(f => {
+        f._2 match {
+          case Constants.NEW => stagedFileNamesString += Console.GREEN + "\t\tnew file: " + f._1 + "\n" + Console.RESET
+          case Constants.MODIFIED => stagedFileNamesString += Console.GREEN + "\t\tmodified: " + f._1 + "\n" + Console.RESET
+        }
+      })
+      message = message + Console.GREEN + stagedFileNamesString + Console.RESET + "\n"
+    }
+
+    /*
+      Modified/deleted files from workingDir
+     */
+    params = params.+("modified" -> false)
+    var modifiedStage = ""
+    if (FileHandler(workingDir).getModifiedFilesFromWorkingDirectory(false).nonEmpty) {
+      params = params.+("modified" -> true)
+      message += "Changes not staged for commit:\n\t(use \"sgit add <file>...\" to update what will be committed)\n\n"
+      FileHandler(workingDir).getModifiedFilesFromWorkingDirectory(false).toSeq.sortBy(_._2).reverse.foreach(f => {
+        f._2 match {
+          case Constants.DELETED => modifiedStage += "\t\tdeleted: " + f._1 + "\n"
+          case Constants.MODIFIED => modifiedStage += "\t\tmodified: " + f._1 + "\n"
+        }
+      })
+      message += Console.RED + modifiedStage + Console.RESET + "\n"
+    }
+
+    val newFiles = FileHandler(workingDir).getWorkingDirFilesRec.diff(stage.getStagedFilesNameRec)
+
+    /*
+      Untracked files
+     */
+    params = params.+("untracked" -> false)
+    if(newFiles.nonEmpty){
+      params = params.+("untracked" -> true)
+      message += "Untracked files:\n\t(use \"sgit add <file>...\" to include in what will be committed)\n\n"
+      var untrackedFiles: String = ""
+      newFiles.foreach(fileName => untrackedFiles = "\t\t"+fileName+"\n"+untrackedFiles)
+      message = message + Console.RED + untrackedFiles + Console.RESET
+    }
+
+    (message, params)
   }
 
 
