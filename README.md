@@ -27,6 +27,8 @@ A Scala-based git-like code source manager
     - Using java `java -jar ./sgit commandName commandParameter(s)`
 
 
+## Available Commands
+
  - [x] sgit init
  - [x] sgit add \<filenames> .
  - [x] sgit status
