@@ -20,9 +20,6 @@ A Scala-based git-like code source manager
 2. To use `sgit` commands use
     1. ./sgit commandName commandParemeter(s)
 
-
-## Available Commands
-
  - [x] sgit init
  - [x] sgit add \<filenames> .
  - [x] sgit status
