@@ -1,7 +1,7 @@
 import UI.Config
 import better.files.File
 import better.files.Dsl.{cwd}
-import misc.{BranchHandler, CommitHandler, Constants, FileHandler, Functions, StageHandler, TagHandler}
+import functions.{BranchHandler, CommitHandler, Constants, FileHandler, Functions, StageHandler, TagHandler}
 import objects.{Commit, Tree}
 
 case class Sgit (var workingDirectory : String) {
@@ -49,60 +49,7 @@ case class Sgit (var workingDirectory : String) {
     */
   def commit(message : String) : Unit = {
     if (!loadSystem) return
-
-    var outMessage : String = ""
-
-    //Check if staged area is sync with last commit
-    if(!isFirstCommit && stage.isStageSync) {
-      outMessage = s"On branch ${branch.getCurrentBranch}\nnothing to commit, working tree clean"
-      println(outMessage)
-      return
-    }
-
-    //Get Blobs from Stage
-    val stageBlob = stage.getStageBLOBS
-
-    //Create ~tree to commit
-    val tree = Tree(head, workingDirectory, stageBlob)
-
-    //Save the tree
-    val commitSHATree : File = tree.save()
-
-    //Default if first commit
-    var parentCommitSHA = "NONE"
-    if (!isFirstCommit) {
-      parentCommitSHA = (File(workingDirectory)/Constants.DEFAULT_HEAD_PATH).lines.head
-    }
-
-    val commit = Commit(commitSHATree, workingDirectory, parentCommitSHA, message)
-
-    parentCommitSHA = commit.save
-
-    //HEAD points to new commit
-    (workingDir/Constants.SGIT_ROOT/"HEAD")
-      .clear
-      .appendLine("refs/heads/"+branch.getCurrentBranch)
-
-    //Create commit file which head points to
-    (workingDir/Constants.SGIT_ROOT/"refs"/"heads"/branch.getCurrentBranch)
-      .createIfNotExists()
-      .clear
-      .appendLine(parentCommitSHA)
-
-    //TODO change parent commit to current commit and files added
-    outMessage = s"[${branch.getCurrentBranch} (root-commit) $parentCommitSHA] $message\n"+
-      s" ${stageBlob.size} files changed, ${stageBlob.size} insertions(+)\n"
-
-    var newFiles : String = ""
-
-    //TODO check this create
-    stageBlob.foreach(f =>{
-      newFiles = " create "+f._1+"\n"+newFiles
-    })
-
-    outMessage = outMessage+newFiles
-
-    println(outMessage)
+    println(Functions.commit(workingDir, message)._1)
 
   }
 
@@ -168,7 +115,7 @@ case class Sgit (var workingDirectory : String) {
         println(branch.newBranch(branchCommand))
       }
     }else{
-      println("fatal: Not a valid object name: 'master'.") //TODO remove
+      println(s"fatal: Not a valid object name: ${branch.getCurrentBranch}.")
     }
   }
 
@@ -179,7 +126,7 @@ case class Sgit (var workingDirectory : String) {
         case _ => TagHandler(workingDirectory).newTag(tagName)
       }
     }else{
-      println("fatal: Not a valid object name: 'master'.") //TODO remove
+      println(s"fatal: Not a valid object name: ${branch.getCurrentBranch}.")
     }
   }
 
@@ -188,7 +135,7 @@ case class Sgit (var workingDirectory : String) {
     * @param changes
     */
   def log(changes : Boolean, stat : Boolean) : Unit = {
-    CommitHandler(workingDirectory).getCommitsHistoric(changes)
+    CommitHandler(workingDirectory).getCommitsHistoric(changes, false)
   }
 
 }
@@ -229,7 +176,7 @@ object Main extends App{
         .children(
           opt[String]('m', "message")
             .text("Commit's message")
-            .optional()
+            .required()
             .action((message, c) => c.copy(cmessage = message))
         ),
       cmd("branch")

@@ -1,4 +1,4 @@
-package misc
+package functions
 
 import better.files.File
 
@@ -79,8 +79,6 @@ case class FileHandler(var workingDirectory : File){
     )
   }
 
-  //TODO fix: create a function to get only working dir files
-  //TODO make a copy in objects
   /**
     * @return a Set with the filename in the workingSet
     */
@@ -89,11 +87,11 @@ case class FileHandler(var workingDirectory : File){
     workingDirectory.listRecursively
       .filter(!_. isChildOf(workingDirectory/Constants.SGIT_ROOT))
       .filter(_.isRegularFile)
-      .filter(!_.name.contains("DS_Store"))//TODO remove macOs
+      //.filter(!_.name.contains("DS_Store"))//TODO remove macOs
       .filter(!_.name.contains("sgit"))
-      .filter(!_. isChildOf(workingDirectory/"project")) //TODO remove
-      .filter(!_. isChildOf(workingDirectory/"target")) //TODO remove
-      .filter(!_. isChildOf(workingDirectory/".git")) //TODO remove
+      //.filter(!_. isChildOf(workingDirectory/"project")) //TODO remove
+      //.filter(!_. isChildOf(workingDirectory/"target")) //TODO remove
+      //.filter(!_. isChildOf(workingDirectory/".git")) //TODO remove
       .foreach(f => {
       repFiles = repFiles.+(f.path.toString diff workingDirectory+"/")
     })

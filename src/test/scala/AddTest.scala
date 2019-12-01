@@ -1,6 +1,6 @@
 import better.files.Dsl.{cwd, mkdirs}
 import better.files.File
-import misc.{Constants, FileHandler, Functions, StageHandler}
+import functions.{Constants, FileHandler, Functions, StageHandler}
 import org.scalatest.{BeforeAndAfter, FlatSpec, Outcome}
 
 class AddTest extends FlatSpec with BeforeAndAfter {
@@ -58,7 +58,7 @@ class AddTest extends FlatSpec with BeforeAndAfter {
     assert((workingPath/Constants.OBJECTS_FOLDER/file3.sha1).exists)
   }
 
-  it should "should add pre-removed files from stage area" in {
+  it should "add pre-removed files from stage area" in {
     file1 = (workingPath/fileName1).createIfNotExists()
     file1.appendLine("tst1")
     assertResult(Functions.add(workingPath, allFiles)) ("", true)

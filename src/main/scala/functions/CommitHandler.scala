@@ -1,4 +1,4 @@
-package misc
+package functions
 
 import better.files.File
 
@@ -109,15 +109,17 @@ case class CommitHandler (workingDir : String) {
   /**
     * show all commits starting with the newest
     */
-  def getCommitsHistoric(historic : Boolean): Boolean =  {
+  def getCommitsHistoric(historic : Boolean, debug : Boolean): Boolean =  {
     if (isFirstCommit) {
-      println(Constants.MSG_FATAL_NO_COMMITS)
+      if(!debug){
+        println(Constants.MSG_FATAL_NO_COMMITS)
+      }
       false
     }
     else{
       val currentBranch = (File(workingDir)/Constants.SGIT_ROOT/"HEAD").lines.head
       val lastCommitSHA = (File(workingDir)/Constants.SGIT_ROOT/currentBranch).lines.head
-      commitsRecursion(lastCommitSHA, historic)
+      commitsRecursion(lastCommitSHA, historic, debug)
       true
     }
   }
@@ -127,7 +129,7 @@ case class CommitHandler (workingDir : String) {
     * @param commitSha - commit's sha
     */
   @tailrec
-  final def commitsRecursion(commitSha:String, historic : Boolean): Unit ={
+  final def commitsRecursion(commitSha:String, historic : Boolean, debug : Boolean): Unit ={
     if(commitSha == "NONE") return
       val lastCommitTree = (File(workingDir)/Constants.OBJECTS_FOLDER/commitSha).lines.head
       lastCommitTree match {
@@ -136,23 +138,24 @@ case class CommitHandler (workingDir : String) {
           msg = msg + "Author: "+user + "\n"
           msg = msg + "Date: "+date + "\n\n"
           msg = msg + "\t\t"+comment + "\n\n"
-          println(msg)
-          if(historic){
-            val lines = FileHandler(File(workingDir)).getDiffLinesWithParent(commitSha)
-            lines.foreach(f => {
-              println("Modifications in " + f._1 + " file")
-              f._2.foreach(lines => {
-                if(lines._2 != "")
-                  lines._1 match {
-                    case "added(+)" => Functions.printDiff(Console.GREEN, lines)
-                    case "removed(-)" => Functions.printDiff(Console.RED, lines)
-                  }
+          if(!debug) {
+            println(msg)
+            if(historic){
+              val lines = FileHandler(File(workingDir)).getDiffLinesWithParent(commitSha)
+              lines.foreach(f => {
+                println("Modifications in " + f._1 + " file")
+                f._2.foreach(lines => {
+                  if(lines._2 != "")
+                    lines._1 match {
+                      case "added(+)" => Functions.printDiff(Console.GREEN, lines)
+                      case "removed(-)" => Functions.printDiff(Console.RED, lines)
+                    }
+                })
+                println()
               })
-              println()
-            })
+            }
           }
-
-          commitsRecursion(parentSha, historic)
+          commitsRecursion(parentSha, historic, debug)
         }
         case _ => println(Console.RED + "Error reading commited files" + Console.RESET)
       }

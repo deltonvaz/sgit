@@ -1,4 +1,4 @@
-package misc
+package functions
 import scala.util.matching.Regex
 
 object Constants {

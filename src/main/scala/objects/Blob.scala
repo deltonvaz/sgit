@@ -1,7 +1,7 @@
 package objects
 
 import better.files.File
-import misc.Constants
+import functions.Constants
 
 final case class Blob(override val id : File, override val workingDir: String) extends Object {
 

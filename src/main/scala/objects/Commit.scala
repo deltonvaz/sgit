@@ -4,7 +4,7 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 
 import better.files.File
-import misc.Constants
+import functions.Constants
 
 final case class Commit(override val id : File, override val workingDir: String, pointToCommit : String, message : String) extends Object {
   override def objectType: ObjectType.Commit.type = ObjectType.Commit

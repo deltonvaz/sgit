@@ -1,19 +1,22 @@
-package misc
+package functions
 
 import better.files.File
-import objects.Blob
+import objects.{Blob, Commit, Tree}
 
 import scala.util.Random
 
 object Functions {
-
-
+  /**
+    * Diff printer beautify
+    * @param color color used for message
+    * @param lines lines that should be printed with colors
+    */
   def printDiff(color : String, lines: (String, String)) : Unit = {
     println(color + "\t"+ lines._1 + "\t" + lines._2 + Console.RESET)
   }
 
   /**
-    * Diff printer beautify, should be a general beautify
+    * String format printer beautify, should be a general beautify
     * @param color color used for message
     * @param str lines that should be printed with colors
     */
@@ -21,10 +24,19 @@ object Functions {
     color + str + Console.RESET
   }
 
+  /**
+    * Error beautify printer
+    * @param str
+    */
   def printError(str : String) : Unit = {
     println(Console.RED + str + Console.RESET)
   }
 
+  /**
+    *
+    * @param str
+    * @return
+    */
   def randomStringFormatter(str: String) : String = {
     val possibleColors = Seq (
       "\u001b[30m",
@@ -41,6 +53,12 @@ object Functions {
 
   }
 
+  /**
+    * add main method
+    * @param workingDir main working directory
+    * @param fileNames files that are being added
+    * @return
+    */
   def add(workingDir : File, fileNames : Seq[String]) : (String, Boolean) = {
     fileNames match {
       case Seq() => ("no file selected", false)
@@ -84,6 +102,11 @@ object Functions {
     }
   }
 
+  /**
+    * status main method
+    * @param workingDir current working directory
+    * @return
+    */
   def status(workingDir : File) : (String, Map[String, Boolean]) = {
     var message: String = ""
     var params : Map[String, Boolean] = Map()
@@ -149,65 +172,83 @@ object Functions {
     (message, params)
   }
 
+  def commit(workingDir : File, message : String) : (String, Map[String, Boolean]) = {
+    var outMessage : String = ""
+    var params : Map[String, Boolean] = Map()
+    //Stage handler
+    val stage = StageHandler(workingDir.pathAsString)
 
-  val helpMessage : String = """
-  Usage:
-    Create an empty Sgit repository
-    """+ Console.GREEN + "init" + Console.RESET +
-  """
+    //branch handler
+    val branch : BranchHandler = BranchHandler(workingDir.pathAsString)
 
-  Show the working tree status
-    """ + Console.GREEN + "status" + Console.RESET +
-  """
+    //head file
+    val head = workingDir/Constants.SGIT_ROOT/"HEAD"
 
-  Show changes between commits, commit and working tree, etc
-    """ + Console.GREEN + "diff" + Console.RESET +
-  """
+    //commit handler
+    val commitHandler = CommitHandler(workingDir.pathAsString)
 
-  Add file contents to the index
-    """ + Console.GREEN + "add <filename/filenames or . or regexp>" + Console.RESET +
-    """
+    params = params.+("firstCommit" -> true)
+    params = params.+("sync" -> true)
 
-  Record changes to the repository
-    """ + Console.GREEN + "commit <filename/filenames or . or regexp>" + Console.RESET +
-  """
+    //output message
+    var whichCommit = "(root-commit)"
+    //Check if staged area is sync with last commit
+    if(!commitHandler.isFirstCommit && stage.isStageSync) {
+      whichCommit = ""
+      outMessage = s"On branch ${branch.getCurrentBranch}\nnothing to commit, working tree clean"
+      params = params.+("firstCommit" -> false)
+      params = params.+("sync" -> true)
+      return (outMessage, params)
+    }
 
-  Show commit logs
-    """ + Console.GREEN + "log" + Console.RESET +
-  """
+    //Get Blobs from Stage
+    val stageBlob = stage.getStageBLOBS
 
-  Show commit logs started with newest
-    """ + Console.GREEN + "log -p" + Console.RESET +
-  """
 
-  Show changes overtime
-    """ + Console.GREEN + "log -stat" + Console.RESET +
-  """
+    //Create tree to commit
+    val tree = Tree(head, workingDir.pathAsString, stageBlob)
 
-  Create a new branch
-    """ + Console.GREEN + "branch <branch name>" + Console.RESET +
-  """
+    //Save the tree
+    val commitSHATree : File = tree.save()
 
-  List all existing branches and tags
-    """ + Console.GREEN + "branch -av" + Console.RESET +
-    """
+    //default parent commit if it is first commit
+    var parentCommitSHA = "NONE"
 
-  Switch branches or restore working tree files
-    """ + Console.GREEN + "checkout <branch or tag or commit hash>" + Console.RESET +
-  """
+    //If is not first commit
+    if (!commitHandler.isFirstCommit) {
+      params = params.+("firstCommit" -> false)
+      params = params.+("sync" -> false)
+      whichCommit = ""
+      parentCommitSHA = (workingDir/Constants.DEFAULT_HEAD_PATH).lines.head
+    }
 
-  Create tag
-    """ + Console.GREEN + "tag <tag name>" + Console.RESET +
-    """
+    val commit = Commit(commitSHATree, workingDir.pathAsString, parentCommitSHA, message)
 
-  Join two or more development histories together
-    """ + Console.GREEN + "merge <branch>" + Console.RESET +
-  """
+    parentCommitSHA = commit.save
 
-  Reapply commits on top of another base tip
-    """ + Console.GREEN + "rebase <branch>" + Console.RESET +
-    """
+    //HEAD points to new commit
+    (workingDir/Constants.SGIT_ROOT/"HEAD")
+      .clear
+      .appendLine("refs/heads/"+branch.getCurrentBranch)
 
-  Make a list of the commits which are about to be rebased. Let the user edit that list before rebasing.
-    """ + Console.GREEN + "merge <branch>" + Console.RESET
+    //Create commit file which head points to
+    (workingDir/Constants.SGIT_ROOT/"refs"/"heads"/branch.getCurrentBranch)
+      .createIfNotExists()
+      .clear
+      .appendLine(parentCommitSHA)
+
+    outMessage = s"[${branch.getCurrentBranch} $whichCommit $parentCommitSHA] $message\n"+
+      s" ${stageBlob.size} file(s) commited\n"
+
+    var newFiles : String = ""
+
+    stageBlob.foreach(f =>{
+      newFiles = " file name: "+f._1+"\n"+newFiles
+    })
+
+    outMessage = outMessage+newFiles
+
+    (outMessage, params)
+  }
+
 }

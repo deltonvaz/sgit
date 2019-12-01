@@ -1,4 +1,4 @@
-package misc
+package functions
 
 import better.files.File
 

@@ -1,6 +1,6 @@
 import better.files.Dsl.{cwd, mkdirs}
 import better.files.File
-import misc.{FileHandler, Functions}
+import functions.{FileHandler, Functions}
 import org.scalatest.{BeforeAndAfter, FlatSpec, Outcome}
 
 class StatusTest extends FlatSpec with BeforeAndAfter {

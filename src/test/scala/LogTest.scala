@@ -1,21 +1,16 @@
 import better.files.Dsl.{cwd, mkdirs}
 import better.files.File
-import misc.{CommitHandler, Constants, FileHandler}
+import functions.{CommitHandler, Constants, FileHandler, Functions}
 import org.scalatest.{BeforeAndAfter, FlatSpec, Outcome}
 
 class LogTest extends FlatSpec with BeforeAndAfter {
   val fileName1 = "file1.txt"
   val fileName2 = "file2.txt"
-  val workingPath : File = mkdirs(cwd/"testFolder")
-  val workingDirectory : String = workingPath.path.toString
-  val sgit = Sgit(workingPath.path.toString)
-  val file1 : File  = (workingPath/fileName1).createIfNotExists()
-  val file2 : File = (workingPath/fileName2).createIfNotExists()
-  val index : File = workingPath/".sgit"/"INDEX"
-  val fileHandler : FileHandler = FileHandler(workingPath)
-  val testCommit = CommitHandler(workingDirectory)
+  var workingPath : File = File.home
   var commitHandler : CommitHandler = _
 
+  var file1 : File = File.home
+  var file2 : File = File.home
 
   override def withFixture(test: NoArgTest): Outcome = {
     try super.withFixture(test)
@@ -26,35 +21,23 @@ class LogTest extends FlatSpec with BeforeAndAfter {
   }
 
   before {
-    sgit.init()
-    commitHandler = CommitHandler(workingDirectory)
+    workingPath = mkdirs(cwd/"testFolder")
+    commitHandler = CommitHandler(workingPath.pathAsString)
+    assertResult(FileHandler(workingPath).createGitBaseFiles()) (true)
   }
 
   "When it is first commit" should "return an empty string" in {
-    assertResult(commitHandler.getCommitsHistoric(true)) (false)
+    assertResult(commitHandler.getCommitsHistoric(true, true)) (false)
   }
 
-  "when there is two commits" should "show it's details" in {
-    sgit.add(Seq(fileName1))
-    sgit.commit("first commit")
-    sgit.add(Seq(fileName2))
-    sgit.commit("second commit")
-    assert(commitHandler.getCommitsHistoric(true), true)
+  "when there are two commits" should "show return its details" in {
+    file1 = (workingPath/fileName1).createIfNotExists()
+    file2 = (workingPath/fileName2).createIfNotExists()
+    Functions.add(workingPath, Seq(fileName1))
+    Functions.commit(workingPath, "firstCommit")
+    Functions.add(workingPath, Seq(fileName2))
+    Functions.commit(workingPath, "secondCommit")
+    assert(commitHandler.getCommitsHistoric(true, true), true)
   }
-
-//  "get modified files from commit" should "return files modified" in {
-//    //FileHandler(workingPath).getDiffLinesWithParent("2D3B3124F6AA56E1617DA63B565089907C2A10AA")
-////    commitHandler.getCommitsHistoric(true), true
-//  }
-
-  it should "insert into head ref the last commit reference" in {
-    sgit.commit("first commit")
-  }
-
-  "As a second commit without any new file" should "points to new commit file" in {
-    sgit.commit("first commit")
-    sgit.commit("second commit")
-  }
-
 
 }

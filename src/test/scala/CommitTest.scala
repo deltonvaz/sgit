@@ -1,20 +1,16 @@
 import better.files.Dsl.{cwd, mkdirs}
 import better.files.File
-import misc.{CommitHandler, Constants, FileHandler}
+import functions.{CommitHandler, Constants, FileHandler, Functions}
 import org.scalatest.{BeforeAndAfter, FlatSpec, Outcome}
 
 class CommitTest extends FlatSpec with BeforeAndAfter {
   val fileName1 = "file1.txt"
   val fileName2 = "file2.txt"
-  val workingPath : File = mkdirs(cwd/"testFolder")
-  val workingDirectory : String = workingPath.path.toString
-  val sgit = Sgit(workingPath.path.toString)
-  val file1 : File  = (workingPath/fileName1).createIfNotExists()
-  val file2 : File = (workingPath/fileName2).createIfNotExists()
-  val index : File = workingPath/".sgit"/"INDEX"
-  val fileHandler : FileHandler = FileHandler(workingPath)
-  val testCommit = CommitHandler(workingDirectory)
+  var workingPath : File = File.home
+  var workingDirectory : String = ""
 
+  var file1 : File = File.home
+  var file2 : File = File.home
 
   override def withFixture(test: NoArgTest): Outcome = {
     try super.withFixture(test)
@@ -25,12 +21,13 @@ class CommitTest extends FlatSpec with BeforeAndAfter {
   }
 
   before {
-    sgit.init()
+    workingPath = mkdirs(cwd/"testFolder")
+    workingDirectory = workingPath.path.toString
+    assertResult(FileHandler(workingPath).createGitBaseFiles()) (true)
   }
 
   "A commit" should "verify if is the first commit" in {
-    (File(workingDirectory)/Constants.SGIT_ROOT/"HEAD").clear()
-    assert(testCommit.isFirstCommit, true)
+    assert(CommitHandler(workingDirectory).isFirstCommit, true)
   }
 
   "As a first commit the head file" should "be empty" in {
@@ -38,14 +35,40 @@ class CommitTest extends FlatSpec with BeforeAndAfter {
     assert((File(workingDirectory)/Constants.DEFAULT_HEAD_PATH).isEmpty, true)
   }
 
-  it should "insert into head ref the last commit reference" in {
-    sgit.commit("first commit")
+  "when it is first commit and nothing have been added" should "return that there is nothing to commit" in {
+    assertResult(
+      Functions.commit(workingPath, "first commit")._2
+    ) (Map(
+      "firstCommit" -> true,
+      "sync" -> true))
   }
 
-  "As a second commit without any new file" should "points to new commit file" in {
-    sgit.commit("first commit")
-    sgit.commit("second commit")
+  "when NOT first commit but stage area _IS_ sync" should "return that there are nothing to commit" in {
+    file1 = (workingPath/fileName1).createIfNotExists()
+    Functions.add(workingPath, Seq(fileName1))
+    Functions.commit(workingPath, "first commit")
+
+    val testResult = Functions.commit(workingPath, "2nd commit")
+    assertResult(
+      testResult._2
+    ) (Map(
+      "firstCommit" -> false,
+      "sync" -> true))
   }
 
+  "when NOT first commit and stage area is _NOT_ sync" should "return that there are files to commit" in {
+    file1 = (workingPath/fileName1).createIfNotExists()
+    Functions.add(workingPath, Seq(fileName1))
+    Functions.commit(workingPath, "first commit")
+
+    file2 = (workingPath/fileName2).createIfNotExists()
+    Functions.add(workingPath, Seq(fileName2))
+    val testResult = Functions.commit(workingPath, "2nd commit")
+    assertResult(
+      testResult._2
+    ) (Map(
+      "firstCommit" -> false,
+      "sync" -> false))
+  }
 
 }
