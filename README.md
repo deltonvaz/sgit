@@ -8,7 +8,7 @@ A Scala-based git-like code source manager
 
 ### Prerequisites
 
-* openjdk8, 
+* JDK11+, 
 * Scala 2.13.10+
 * sbt version 1.3.2+
 
