@@ -18,5 +18,7 @@ assemblyOption in assembly := (assemblyOption in assembly).value
 
 parallelExecution in Test := false
 
+//assemblyJarName in assembly := s"${name.value}"
+
 //Export to root dir
 assemblyOutputPath in assembly := file(baseDirectory.value.getAbsolutePath+"/sgit")

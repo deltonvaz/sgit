@@ -35,7 +35,10 @@ class LogTest extends FlatSpec with BeforeAndAfter {
     file2 = (workingPath/fileName2).createIfNotExists()
     Functions.add(workingPath, Seq(fileName1))
     Functions.commit(workingPath, "firstCommit")
+    assert(commitHandler.getCommitsHistoric(true, true), true)
+    file1.appendLine("newLineString")
     Functions.add(workingPath, Seq(fileName2))
+    Functions.add(workingPath, Seq(fileName1))
     Functions.commit(workingPath, "secondCommit")
     assert(commitHandler.getCommitsHistoric(true, true), true)
   }

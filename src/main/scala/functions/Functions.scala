@@ -70,7 +70,7 @@ object Functions {
             workingDir.listRecursively
               .filter(!_.isChildOf(workingDir/Constants.SGIT_ROOT))
               .filterNot(_.name == Constants.SGIT_ROOT)
-              .filter(!_.name.contains("DS_Store"))//TODO remove
+              //.filter(!_.name.contains("DS_Store"))//TODO remove
               .filter(!_.name.equals("sgit"))
               .filterNot(_.isDirectory)
               .foreach(file => Blob(file, workingDir.pathAsString).save())

@@ -141,6 +141,13 @@ case class CommitHandler (workingDir : String) {
           if(!debug) {
             println(msg)
             if(historic){
+              val commitTree = getTreeFromCommitSHA(commitSha, parent = false)
+              val currentCommit = (File(workingDir)/Constants.OBJECTS_FOLDER/commitTree).lines.toIndexedSeq
+              println("Files added\n")
+              currentCommit.foreach(file => {
+                println("\t "+file.split(" ")(1))
+              })
+              println()
               val lines = FileHandler(File(workingDir)).getDiffLinesWithParent(commitSha)
               lines.foreach(f => {
                 println("Modifications in " + f._1 + " file")
