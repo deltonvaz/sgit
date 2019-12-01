@@ -16,9 +16,14 @@ A Scala-based git-like code source manager
 
 1. Use `make` to generate `sgit` 
     1. This command will run `sbt assembly` to generate a sgit executable into sgit directory
+    
+    2. If you want to use `sgit` as any other command then you need to add it to your PATH
 
 2. To use `sgit` commands:
+    Default
     - `./sgit commandName commandParameter(s)`
+    - `java -jar`
+
 
  - [x] sgit init
  - [x] sgit add \<filenames> .
