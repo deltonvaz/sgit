@@ -37,7 +37,7 @@ A Scala-based git-like code source manager
  - [x] sgit log
  - [x] sgit log -p
  - [ ] sgit log -stat :construction_worker:
- - [x] sgit branch  \<branch>
+ - [x] sgit branch  \<branchName>
  - [x] sgit branch -av -ALL
   ```diff
   -ALL is imperative
